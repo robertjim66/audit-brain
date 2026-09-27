@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth, useTheme, useProject } from './Providers';
 import { Button } from '@/components/ui/primitives';
+import { api } from '@/lib/apiClient';
+import type { AuditProject } from '@/types';
 
 interface NavItem {
   key: string;
@@ -36,6 +38,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [projectName, setProjectName] = useState<string | null>(null);
+
+  // 顶栏显示项目名而非雪花 ID：按当前项目 id 查一次名称（AppShell 每次整页加载只挂载一次）
+  useEffect(() => {
+    if (!currentProjectId) { setProjectName(null); return; }
+    let cancelled = false;
+    api.get<AuditProject[]>('/audit/projects')
+      .then((list) => {
+        if (cancelled) return;
+        const hit = (list || []).find((p) => String(p.id) === String(currentProjectId));
+        setProjectName(hit?.project_name || null);
+      })
+      .catch(() => { if (!cancelled) setProjectName(null); });
+    return () => { cancelled = true; };
+  }, [currentProjectId]);
 
   const isAdmin = user?.is_admin === 1;
   const visibleNav = NAV.filter((n) => !n.adminOnly || isAdmin);
@@ -83,7 +100,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3 min-w-0">
             {currentProjectId ? (
               <span className="text-sm text-text-secondary truncate">
-                当前项目：<span className="text-primary font-medium">{currentProjectId}</span>
+                当前项目：<span className="text-primary font-medium">{projectName || currentProjectId}</span>
               </span>
             ) : (
               <span className="text-sm text-text-muted">未选择项目</span>
