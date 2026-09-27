@@ -52,7 +52,8 @@ export async function ensureRoleTables(): Promise<void> {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色菜单关联'
   `);
   const [existing]: any = await db.query('SELECT COUNT(*) AS cnt FROM sl_sys_role WHERE del_flag = 0');
-  if (existing[0].cnt === 0) {
+  // db.ts 开启了 bigNumberStrings，COUNT(*) 返回字符串，需显式转换后再比较
+  if (Number(existing[0].cnt) === 0) {
     await db.query(`
       INSERT INTO sl_sys_role (id, role_name, role_code, description, status, sort_no) VALUES
       (1, '超级管理员', 'ADMIN', '系统管理员，可访问所有功能', 1, 1),
@@ -103,6 +104,29 @@ export async function ensureMenuTables(): Promise<void> {
       updated_at DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='菜单配置'
   `);
+
+  // 旧库的 sl_sys_menu 只有基础列，CREATE TABLE IF NOT EXISTS 不会补列，需显式 ALTER
+  const [menuCols]: any = await db.query(
+    `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sl_sys_menu'
+       AND COLUMN_NAME IN ('parent_id', 'menu_type', 'perm_key')`
+  );
+  const existingCols = new Set(menuCols.map((c: any) => c.COLUMN_NAME));
+  if (!existingCols.has('parent_id')) {
+    await db.query(
+      `ALTER TABLE sl_sys_menu ADD COLUMN parent_id INT NOT NULL DEFAULT 0 COMMENT '父菜单ID，0=一级' AFTER is_builtin`
+    );
+  }
+  if (!existingCols.has('menu_type')) {
+    await db.query(
+      `ALTER TABLE sl_sys_menu ADD COLUMN menu_type TINYINT NOT NULL DEFAULT 0 COMMENT '0=菜单 1=按钮' AFTER parent_id`
+    );
+  }
+  if (!existingCols.has('perm_key')) {
+    await db.query(
+      `ALTER TABLE sl_sys_menu ADD COLUMN perm_key VARCHAR(60) DEFAULT NULL COMMENT '权限标识' AFTER menu_type`
+    );
+  }
 
   for (const m of BUILTIN_MENUS) {
     await db.query(
