@@ -44,33 +44,42 @@ function extractLines(els: any[], side: string): any[] {
 }
 
 export async function runBoqCheck(projectId: string | number, userId: string | number): Promise<{ programId: string; summary: any }> {
-  const [xls]: any = await db.query(
-    "SELECT id, document_id docId, sheet_name sheetName, page_no pageNo, content_md content_md FROM audit_element WHERE project_id=? AND element_type='table' AND sheet_name LIKE '%分部分项%'",
+  // 按「资料业务类别」选表，而不是匹配 anchor_label 文字：
+  // OCR 要素的 anchor_label 恒为「第 N 页·表格」，不含表格语义，选不出结算表；
+  // 而 Excel 要素的 anchor_label 含「分部分项/计价/清单」，会被右侧条件误命中，
+  // 导致左右取到同一个要素、比对结果恒为「一致」。
+  const [leftEls]: any = await db.query(
+    `SELECT e.id, e.document_id docId, e.sheet_name sheetName, e.page_no pageNo, e.content_md
+       FROM audit_element e JOIN audit_document d ON d.id = e.document_id
+      WHERE e.project_id=? AND e.element_type='table' AND d.del_flag=0
+        AND d.biz_category='boq'
+      ORDER BY e.id`,
     [projectId]
   );
-  const [pdf]: any = await db.query(
-    `SELECT id, document_id docId, sheet_name sheetName, page_no pageNo, content_md content_md FROM audit_element
-      WHERE project_id=? AND element_type='table'
-        AND anchor_label LIKE '%分部分项%'
-        AND (anchor_label LIKE '%计价%' OR anchor_label LIKE '%结算%' OR anchor_label LIKE '%清单%')`,
+  const [rightEls]: any = await db.query(
+    `SELECT e.id, e.document_id docId, e.sheet_name sheetName, e.page_no pageNo, e.content_md
+       FROM audit_element e JOIN audit_document d ON d.id = e.document_id
+      WHERE e.project_id=? AND e.element_type='table' AND d.del_flag=0
+        AND d.biz_category IN ('settlement','control_price')
+      ORDER BY e.id`,
     [projectId]
   );
-  if (!xls.length && !pdf.length) {
-    const e: any = new Error('未在资料中识别到"分部分项"清单/结算表，请先完成资料解析');
+  if (!leftEls.length && !rightEls.length) {
+    const e: any = new Error('未在资料中识别到"分部分项"清单/结算表：需至少一份清单类(boq)与一份结算/控制价类资料并完成解析');
     e.status = 400; throw e;
   }
 
-  const left = extractLines(xls, 'left');
-  const right = extractLines(pdf, 'right');
+  const left = extractLines(leftEls, 'left');
+  const right = extractLines(rightEls, 'right');
   const lmap = new Map(left.map((l) => [l.code, l]));
-  const rmap = new Map(right.map((l) => [l.code, l]));
+  const rmap = new Map(right.map((r) => [r.code, r]));
 
   const [docs]: any = await db.query('SELECT id, file_name FROM audit_document WHERE project_id=?', [projectId]);
   const docName: Record<string, string> = {};
   docs.forEach((d: any) => { docName[String(d.id)] = d.file_name; });
 
-  const leftLabel = xls.length ? 'Excel 清单' : '清单资料';
-  const rightLabel = pdf.length ? '结算/控制价资料' : '结算资料';
+  const leftLabel = '清单资料';
+  const rightLabel = '结算/控制价资料';
 
   const [oldProgs]: any = await db.query("SELECT id FROM audit_check_program WHERE project_id=? AND program_type='boq_settlement' AND del_flag=0", [projectId]);
   for (const o of oldProgs) await db.query('UPDATE audit_check_item SET del_flag=1 WHERE program_id=?', [o.id]);
