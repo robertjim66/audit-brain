@@ -7,6 +7,8 @@ import { api } from '@/lib/apiClient';
 
 const BIZ = ['contract', 'boq', 'control_price', 'settlement', 'payment', 'visa', 'photo', 'invoice', 'other'];
 const DOCTYPE = ['pdf_text', 'pdf_mixed', 'pdf_scan', 'excel', 'word', 'photo', 'other'];
+// 后端单次请求最多接收 20 个文件（route 里 files.slice(0, 20)），超出时前端分批发送
+const MAX_BATCH = 20;
 
 function fmtSize(n: number) {
   if (!n) return '—';
@@ -35,7 +37,8 @@ export default function DocumentsPage() {
   const [msg, setMsg] = useState('');
   const [cat, setCat] = useState('');
   const [docType, setDocType] = useState('');
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [resultDoc, setResultDoc] = useState<any>(null);
   const [result, setResult] = useState<any>(null);
   const [activeSheet, setActiveSheet] = useState(0);
@@ -63,19 +66,31 @@ export default function DocumentsPage() {
   }, [docs, load]);
 
   async function onUpload() {
-    if (!file) { setMsg('请选择文件'); return; }
-    const fd = new FormData();
-    fd.append('files', file);
-    fd.append('project_id', currentProjectId || '');
-    if (cat) fd.append('biz_category', cat);
-    if (docType) fd.append('doc_type', docType);
+    if (!files.length) { setMsg('请选择文件'); return; }
+    setUploading(true);
+    let uploaded = 0;
     try {
-      await api.upload('/audit/documents/upload', fd);
-      setMsg('上传成功，已加入解析队列');
-      setFile(null);
-      (document.getElementById('fileInput') as HTMLInputElement).value = '';
+      for (let i = 0; i < files.length; i += MAX_BATCH) {
+        const chunk = files.slice(i, i + MAX_BATCH);
+        const fd = new FormData();
+        chunk.forEach((f) => fd.append('files', f));
+        fd.append('project_id', currentProjectId || '');
+        if (cat) fd.append('biz_category', cat);
+        if (docType) fd.append('doc_type', docType);
+        setMsg(`上传中 ${Math.min(i + chunk.length, files.length)}/${files.length}…`);
+        const res = await api.upload<{ documents: any[] }>('/audit/documents/upload', fd);
+        uploaded += res.documents?.length || 0;
+      }
+      setMsg(`已上传 ${uploaded} 个文件，已加入解析队列`);
+      setFiles([]);
+      const input = document.getElementById('fileInput') as HTMLInputElement | null;
+      if (input) input.value = '';
+    } catch (e: any) {
+      setMsg(uploaded ? `已上传 ${uploaded} 个，后续失败：${e.message}` : `上传失败：${e.message}`);
+    } finally {
+      setUploading(false);
       load();
-    } catch (e: any) { setMsg(e.message); }
+    }
   }
   async function onParse(id: string) {
     try { await api.post(`/audit/documents/${id}/parse`, {}); setMsg('已加入解析队列'); load(); }
@@ -129,11 +144,16 @@ export default function DocumentsPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-slate-500">选择文件</label>
-            <input id="fileInput" type="file" accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg,.webp" onChange={(e) => setFile(e.target.files?.[0] || null)} className="block text-sm" />
+            <label className="mb-1 block text-xs text-slate-500">选择文件（可多选）</label>
+            <input id="fileInput" type="file" multiple accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg,.webp" onChange={(e) => setFiles(Array.from(e.target.files || []))} className="block text-sm" />
           </div>
-          <button onClick={onUpload} disabled={!file} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">上传并解析</button>
+          <button onClick={onUpload} disabled={!files.length || uploading} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+            {uploading ? '上传中…' : files.length > 1 ? `上传并解析（${files.length} 个）` : '上传并解析'}
+          </button>
         </div>
+        {files.length > 0 && (
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">已选 {files.length} 个文件，合计 {fmtSize(files.reduce((s, f) => s + f.size, 0))}；解析为串行队列，会按顺序逐个处理。</p>
+        )}
         <p className="mt-2 text-xs text-slate-400">支持 PDF / Word(.docx) / Excel(.xlsx,.xls) / 图片；Excel 与 Word 可在无外部密钥下本地解析，PDF/图片识别需配置 OCR_KEY。</p>
       </div>
 
