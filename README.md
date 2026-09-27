@@ -58,6 +58,33 @@ npm run build && npm run start
 ### 5. 首次使用
 打开 `http://localhost:3003` → 注册第一个账号（自动成为管理员）→ 进入「审计项目」创建项目 → 进入「资料舱」上传资料。
 
+## 部署（生产）
+
+### 1. 启动 Node 服务
+```bash
+npm ci
+npm run build
+NODE_ENV=production npm run start     # 端口取自 .env 的 PORT（默认 3003）
+```
+建议用 `systemd` / `pm2` 托管，监听 `127.0.0.1:3003`，由反向代理对外暴露。
+
+### 2. 反向代理（OpenResty）
+配置样例见 [`deploy/openresty/audit-brain.conf`](deploy/openresty/audit-brain.conf)，语法与 nginx 兼容。放到 `/usr/local/openresty/nginx/conf/conf.d/` 下，改好域名、证书路径与上游端口后：
+```bash
+openresty -t && openresty -s reload
+```
+
+需要重点关注的几处（样例中已配好）：
+
+| 场景 | 关键配置 | 原因 |
+| --- | --- | --- |
+| SSE 流式问答 `/api/audit/chat/` | `proxy_buffering off`、`gzip off` | 否则令牌被缓冲，整段结束才吐给前端 |
+| 文档解析 `/api/audit/documents/` | `proxy_read_timeout 1800s` | PaddleOCR-VL 轮询耗时长（`OCR_TIMEOUT_MS` 默认 600s） |
+| 核对执行 `/api/audit/checks/` | `proxy_read_timeout 1800s` | 避免长任务中途 504 |
+| 资料上传 | `client_max_body_size 200m`、`proxy_request_buffering off` | 扫描件 / 大 PDF 直传后端 |
+
+> 注：`.env` 中的 `TRUST_PROXY`、`ALLOWED_ORIGINS` 目前尚未被代码消费，配置里的真实 IP 透传为后续启用预留。
+
 ## 外部 AI 能力（可选）
 - 资料解析需要 PaddleOCR-VL（AI Studio）密钥：`OCR_KEY`
 - 智能问答 / 核对需要火山方舟密钥：`ARK_API_KEY`
