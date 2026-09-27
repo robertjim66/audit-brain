@@ -1,0 +1,2 @@
+# 占位文件：public/uploads 是 upload 接口的实际落盘目录（原资料 + audit-parse 解析产物），
+# .gitignore 已忽略其内容、仅保留此文件

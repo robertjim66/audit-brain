@@ -15,6 +15,9 @@ next-env.d.ts
 # runtime uploads & temp
 /uploads/*
 !/uploads/.gitkeep
+# 上传的审计资料与解析产物（public/uploads/ 是 upload 接口的实际落盘目录）
+/public/uploads/*
+!/public/uploads/.gitkeep
 /data
 /server/data
 
