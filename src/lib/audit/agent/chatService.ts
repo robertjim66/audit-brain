@@ -3,13 +3,14 @@
  */
 import db from '@/lib/db';
 import snowflake from '@/lib/snowflake';
+import { ApiError } from '@/lib/http';
 import { runAgent, AgentEvent } from './agentLoop';
 
-class ServiceError extends Error {
-  status: number;
+// 继承 ApiError：withHandler 只按 instanceof ApiError 分发状态码，
+// 否则 ServiceError 会被兜成 500，404/403 无法透出。
+class ServiceError extends ApiError {
   constructor(message: string, status: number) {
-    super(message);
-    this.status = status;
+    super(status, message);
   }
 }
 
