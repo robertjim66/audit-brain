@@ -1,17 +1,25 @@
+import { randomBytes } from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import db from './db';
 import { ApiError } from './http';
 
 // JWT 密钥：优先环境变量；生产环境缺失则启动失败，开发环境生成临时密钥（重启失效）
+let devJwtSecret: string | null = null;
+
 function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
-  if (secret) return secret;
+  const fromEnv = process.env.JWT_SECRET;
+  if (fromEnv) return fromEnv;
   if (process.env.NODE_ENV === 'production') {
     throw new Error('生产环境必须设置 JWT_SECRET 环境变量');
   }
-  console.warn('⚠️  未设置 JWT_SECRET，已生成临时密钥（重启后 token 失效）');
-  return 'dev-temp-secret-do-not-use-in-production';
+  let secret = devJwtSecret;
+  if (secret === null) {
+    secret = randomBytes(48).toString('base64');
+    devJwtSecret = secret;
+    console.warn('⚠️  未设置 JWT_SECRET，已生成临时密钥（重启后 token 失效）');
+  }
+  return secret;
 }
 
 const JWT_EXPIRES_IN = '30d';
