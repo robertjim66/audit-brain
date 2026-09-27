@@ -18,11 +18,16 @@ function listSql(dir) {
 }
 
 function splitStatements(sql) {
+  // 先剥离 -- 行注释：否则以注释开头的语句块会被整体误删
+  const cleaned = sql
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('--'))
+    .join('\n');
   // 按分号切分（这些初始化脚本不含字符串内的分号歧义）
-  return sql
+  return cleaned
     .split(';')
     .map((s) => s.trim())
-    .filter((s) => s.length > 0 && !s.startsWith('--'));
+    .filter((s) => s.length > 0);
 }
 
 async function main() {
