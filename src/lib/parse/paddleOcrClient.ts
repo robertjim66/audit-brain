@@ -78,11 +78,14 @@ async function createJob(filePath: string, fileName: string, mimeType: string): 
       if (data?.code && data.code !== 0 && data.code !== 200) {
         // 瞬时码（10010/10011/12001）可重试
         if ([10010, 10011, 12001].includes(data.code)) {
-          throw new PaddleOcrError(data.message || '瞬时错误', String(data.code));
+          throw new PaddleOcrError(data.message || data.msg || '瞬时错误', String(data.code));
         }
-        throw new PaddleOcrError(data.message || '创建识别任务失败', String(data.code));
+        throw new PaddleOcrError(data.message || data.msg || '创建识别任务失败', String(data.code));
       }
-      const jobId = data?.result?.jobId || data?.result?.job_id || data?.jobId || data?.job_id;
+      // 实际响应：{"code":0,"msg":"Success","data":{"jobId":"..."}}
+      const jobId = data?.data?.jobId || data?.data?.job_id
+        || data?.result?.jobId || data?.result?.job_id
+        || data?.jobId || data?.job_id;
       if (!jobId) throw new PaddleOcrError('创建识别任务未返回 jobId');
       return String(jobId);
     } catch (e: any) {
@@ -105,8 +108,13 @@ async function getJob(jobId: string): Promise<{ status: string; resultUrl?: stri
       const res = await fetch(url, { headers: { Authorization: `bearer ${process.env.OCR_KEY}` } });
       if (!res.ok) throw new PaddleOcrError(`轮询失败(${res.status})`, String(res.status));
       const data: any = await res.json();
-      const status = data?.result?.status || data?.status;
-      const resultUrl = data?.result?.resultUrl?.jsonUrl || data?.result?.jsonUrl || data?.result?.resultUrl;
+      // 实际响应：{"code":0,"msg":"Success","data":{"jobId":"...","state":"running|done|failed",
+      //           "resultUrl":{"jsonUrl":"..."}}}
+      const payload = data?.data || data?.result || data;
+      const status = payload?.state || payload?.status;
+      const urlField = payload?.resultUrl;
+      const resultUrl = (typeof urlField === 'string' ? urlField : undefined)
+        || urlField?.jsonUrl || urlField?.json;
       return { status, resultUrl: resultUrl ? String(resultUrl) : undefined };
     } catch (e: any) {
       lastErr = e;
@@ -116,37 +124,53 @@ async function getJob(jobId: string): Promise<{ status: string; resultUrl?: stri
   throw lastErr instanceof PaddleOcrError ? lastErr : new PaddleOcrError(lastErr?.message || '轮询失败');
 }
 
-async function downloadJsonl(resultUrl: string): Promise<any> {
-  const res = await fetch(resultUrl, { headers: process.env.OCR_KEY ? { Authorization: `bearer ${process.env.OCR_KEY}` } : {} });
+/**
+ * 下载识别结果。
+ * 注意两点：resultUrl 是 BOS 预签名地址，附带 Authorization 头会触发头部鉴权而使签名校验失败（400
+ * MissingDateHeader）；且返回内容是 JSONL（每行一个批次对象），不能按单个 JSON 解析。
+ */
+async function downloadJsonl(resultUrl: string): Promise<any[]> {
+  const res = await fetch(resultUrl);
   if (!res.ok) throw new PaddleOcrError(`下载识别结果失败(${res.status})`, String(res.status));
-  return res.json();
+  const text = await res.text();
+  return text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => JSON.parse(line));
 }
 
-/** 把 PaddleOCR 归一化结果映射为本系统的 pages/elements 结构 */
-function normalizeResult(raw: any): { numPages: number; pages: any[] } {
-  // 不同版本返回结构可能不同，这里做容错映射
-  const pagesRaw: any[] = Array.isArray(raw?.result?.pages) ? raw.result.pages
-    : Array.isArray(raw?.pages) ? raw.pages
-    : Array.isArray(raw) ? raw : [];
-  const pages = pagesRaw.map((pg: any, i: number) => {
-    const els: any[] = Array.isArray(pg.elements) ? pg.elements.map((e: any, idx: number) => ({
-      index: idx,
-      label: e.label || e.elementType || '',
-      elementType: e.elementType || mapElementType(e.label || e.elementType || ''),
-      content: e.content || e.markdown || '',
-      bbox: e.bbox || null,
-    })) : [];
-    return {
-      pageNo: pg.pageNo || i + 1,
-      width: pg.width || pg.pageWidth || 0,
-      height: pg.height || pg.pageHeight || 0,
-      markdown: pg.markdown || '',
-      localImage: pg.localImage || '',
-      inputImage: pg.inputImage || '',
-      blockImages: pg.blockImages || {},
-      elements: els,
-    };
-  });
+/**
+ * 把 PaddleOCR 的批次结果映射为本系统的 pages/elements 结构。
+ * 入参是 JSONL 解析出的批次数组，每个批次的 result.layoutParsingResults 是若干页：
+ *   { prunedResult: { width, height, parsing_res_list[] }, markdown: { text, images }, inputImage }
+ */
+function normalizeResult(batches: any[]): { numPages: number; pages: any[] } {
+  const pages: any[] = [];
+  for (const batch of batches) {
+    const list = batch?.result?.layoutParsingResults;
+    if (!Array.isArray(list)) continue;
+    for (const item of list) {
+      const pr = item?.prunedResult || {};
+      const els: any[] = Array.isArray(pr.parsing_res_list) ? pr.parsing_res_list.map((e: any, idx: number) => ({
+        index: idx,
+        label: e.block_label || '',
+        elementType: mapElementType(e.block_label || ''),
+        content: e.block_content || '',
+        bbox: e.block_bbox || null,
+      })) : [];
+      pages.push({
+        pageNo: pages.length + 1,
+        width: pr.width || 0,
+        height: pr.height || 0,
+        markdown: item?.markdown?.text || '',
+        localImage: '',
+        inputImage: item?.inputImage || '',
+        blockImages: item?.markdown?.images || {},
+        elements: els,
+      });
+    }
+  }
   return { numPages: pages.length, pages };
 }
 
@@ -169,7 +193,8 @@ export async function runOcr(opts: {
 
   let status = 'processing';
   let resultUrl: string | undefined;
-  while (status !== 'succeeded' && status !== 'failed') {
+  // 终态：done（成功）/ failed（succeeded 为兼容旧约定的兜底）
+  while (status !== 'done' && status !== 'succeeded' && status !== 'failed') {
     if (Date.now() - startedAt > OCR_TIMEOUT_MS) {
       throw new PaddleOcrError('识别任务超时');
     }
