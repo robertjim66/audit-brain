@@ -1,0 +1,26 @@
+# dependencies
+/node_modules
+
+# next
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+
+# env（真实密钥绝不入库）
+.env
+.env.local
+.env*.local
+
+# runtime uploads & temp
+/uploads/*
+!/uploads/.gitkeep
+/data
+/server/data
+
+# logs
+*.log
+npm-debug.log*
+
+# os
+.DS_Store

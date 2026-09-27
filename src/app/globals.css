@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   设计令牌（设计系统变量，统一明暗主题）
+   颜色以 "R G B" 形式声明，配合 Tailwind rgb(var(--x) / <alpha>) 使用
+   ============================================================ */
+:root {
+  --c-primary: 14 165 233;       /* #0ea5e9 */
+  --c-primary-fg: 255 255 255;
+  --c-success: 16 185 129;       /* #10b981 */
+  --c-danger: 239 68 68;         /* #ef4444 */
+  --c-warning: 245 158 11;       /* #f59e0b */
+  --c-bg: 248 250 252;           /* #f8fafc */
+  --c-card: 255 255 255;
+  --c-border: 226 232 240;       /* #e2e8f0 */
+  --c-text: 30 41 59;            /* #1e293b */
+  --c-text-secondary: 71 85 105; /* #475569 */
+  --c-text-muted: 148 163 184;   /* #94a3b8 */
+}
+
+.dark {
+  --c-primary: 56 189 248;
+  --c-primary-fg: 8 15 23;
+  --c-success: 52 211 153;
+  --c-danger: 248 113 113;
+  --c-warning: 251 191 36;
+  --c-bg: 15 23 42;              /* #0f172a */
+  --c-card: 30 41 59;            /* #1e293b */
+  --c-border: 51 65 85;          /* #334155 */
+  --c-text: 241 245 249;         /* #f1f5f9 */
+  --c-text-secondary: 148 163 184;
+  --c-text-muted: 100 116 139;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background-color: rgb(var(--c-bg));
+  color: rgb(var(--c-text));
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--c-text-muted) / 0.4);
+  border-radius: 4px;
+}
+
+/* Markdown 渲染基础样式 */
+.markdown-body h1 { font-size: 1.4rem; font-weight: 700; margin: 0.8em 0 0.4em; }
+.markdown-body h2 { font-size: 1.2rem; font-weight: 700; margin: 0.8em 0 0.4em; }
+.markdown-body h3 { font-size: 1.05rem; font-weight: 600; margin: 0.6em 0 0.3em; }
+.markdown-body p { margin: 0.5em 0; line-height: 1.7; }
+.markdown-body ul, .markdown-body ol { padding-left: 1.4em; margin: 0.5em 0; }
+.markdown-body li { margin: 0.25em 0; }
+.markdown-body table { border-collapse: collapse; width: 100%; margin: 0.6em 0; font-size: 0.9rem; }
+.markdown-body th, .markdown-body td { border: 1px solid rgb(var(--c-border)); padding: 6px 10px; text-align: left; }
+.markdown-body th { background: rgb(var(--c-bg)); font-weight: 600; }
+.markdown-body code { background: rgb(var(--c-text-muted) / 0.18); padding: 1px 5px; border-radius: 4px; font-size: 0.88em; }
+.markdown-body pre { background: rgb(var(--c-bg)); padding: 12px; border-radius: 8px; overflow-x: auto; margin: 0.6em 0; }
+.markdown-body pre code { background: transparent; padding: 0; }
+.markdown-body blockquote { border-left: 3px solid rgb(var(--c-primary)); padding-left: 12px; color: rgb(var(--c-text-secondary)); margin: 0.6em 0; }
