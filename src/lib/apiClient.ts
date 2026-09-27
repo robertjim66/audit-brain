@@ -41,7 +41,9 @@ export async function apiFetch<T = any>(
 ): Promise<T> {
   const url = path.startsWith('http') ? path : `${API_BASE}${path}`;
   const headers = new Headers(options.headers);
-  if (!headers.has('Content-Type') && options.method && options.method !== 'GET') {
+  // FormData 的 Content-Type 必须由浏览器生成（含 multipart boundary），不能覆盖为 application/json
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  if (!headers.has('Content-Type') && options.method && options.method !== 'GET' && !isFormData) {
     headers.set('Content-Type', 'application/json');
   }
   const token = getToken();
@@ -83,7 +85,7 @@ export const api = {
   patch: <T = any>(path: string, data?: any) =>
     apiFetch<T>(path, { method: 'PATCH', body: data ? JSON.stringify(data) : undefined }),
   del: <T = any>(path: string) => apiFetch<T>(path, { method: 'DELETE' }),
-  // 文件上传：multipart，不设置 Content-Type（让浏览器填 boundary）
+  // 文件上传：multipart，Content-Type 由浏览器生成（apiFetch 对 FormData 不再设 JSON 头）
   upload: <T = any>(path: string, formData: FormData) =>
-    apiFetch<T>(path, { method: 'POST', body: formData, headers: new Headers() }),
+    apiFetch<T>(path, { method: 'POST', body: formData }),
 };
