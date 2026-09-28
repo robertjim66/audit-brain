@@ -32,7 +32,7 @@ const FINALIZE_PROMPT = `取证结束。请严格基于上方工具实际返回�
   "confidence": "high|mid|low"
 }
 规则：citationEids 只能填写工具结果中真实出现过的证据编号，且必须与 answer 中标注的编号一致；凡无证据支撑的内容，一律写入 missing，不得在 answer 中编造。
-字段顺序必须严格保持 answer 在第一位，不要调整顺序，也不要输出任何注释或说明文字。`;
+字段顺序必须严格保持 answer 在第一位，不要调整顺序，也不要输出任何注释或说明文字；禁止调用工具、禁止输出任何工具调用语法或特殊标记；answer 字符串内部的双引号必须用 \\" 转义。`;
 
 function extractEids(text: string): string[] {
   const set = new Set<string>();
@@ -40,6 +40,27 @@ function extractEids(text: string): string[] {
   let m: RegExpExecArray | null;
   while ((m = re.exec(String(text || '')))) set.add(m[0]);
   return Array.from(set);
+}
+
+/**
+ * 从不合规的 JSON 里宽容提取 answer 字段。
+ * 模型偶尔会在 answer 值里写出未转义的双引号，导致整段 JSON.parse 失败；
+ * 此时按「键名 → 结尾引号」直接切出值本身，避免正文被 JSON 外壳和截断吞掉。
+ */
+function salvageAnswerField(raw: string): string {
+  const key = raw.search(/"answer"\s*:\s*"/);
+  if (key < 0) return '';
+  const open = raw.indexOf('"', raw.indexOf(':', key) + 1);
+  if (open < 0) return '';
+  const body = raw.slice(open + 1);
+  // 结尾引号：后面只允许跟 } 与空白（JSON 收尾），否则退化为取全文
+  const tail = body.search(/"\s*\}?\s*$/);
+  const value = tail >= 0 ? body.slice(0, tail) : body;
+  const ESC: Record<string, string> = { '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' };
+  return value
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_m, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/\\(.)/g, (_m, c) => (ESC[c] !== undefined ? ESC[c] : c))
+    .trim();
 }
 
 export interface AgentEvent {
@@ -171,13 +192,19 @@ export async function runAgent(p: {
   lastModel = finalResp.model || lastModel;
   lastModelKey = finalResp.modelKey || lastModelKey;
 
-  let parsedFinal: any;
+  const raw = String(finalResp.content || '');
+  let parsedFinal: any = null;
   try {
-    const raw = finalResp.content || '';
     const m = raw.match(/\{[\s\S]*\}/);
     parsedFinal = JSON.parse(m ? m[0] : raw);
-  } catch {
-    parsedFinal = { answer: finalResp.content || '（模型返回格式异常，请重试）', citationEids: extractEids(finalResp.content), missing: [], confidence: 'low' };
+  } catch { /* 落到下方宽容解析 */ }
+  if (!parsedFinal || typeof parsedFinal !== 'object') {
+    // 模型 JSON 偶发不合规（正文含未转义引号、或被截断）时，绝不能把 JSON 外壳当正文返回；
+    // 先做字段级宽容提取，再退回流式解码器已吐出的正文。
+    parsedFinal = {
+      answer: salvageAnswerField(raw) || answerStream.value().trim() || '（模型返回格式异常，请重试）',
+      citationEids: [], missing: [], confidence: 'low',
+    };
   }
 
   let answer = String(parsedFinal.answer || '').trim();

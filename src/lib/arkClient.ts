@@ -203,6 +203,19 @@ async function readSse(res: any, armTimeout: () => void, onDelta?: (delta: strin
   return { model: modelId, choices: [{ message, finish_reason: 'stop' }], usage };
 }
 
+/**
+ * 截断模型输出尾部的内部工具调用标记。
+ * DeepSeek 偶尔会把内部工具调用语法（｜｜DSML｜｜ 系列特殊 token）直接写进 content，
+ * 这类标记不属于答复内容，被回灌进 messages 还会污染后续轮次；一旦出现即从该处截断。
+ */
+const TOOL_MARKUP_RE = /[｜|]{2,}\s*DSML\s*[｜|]{2,}|<\s*\/?\s*[｜|]{2,}\s*DSML/i;
+
+function stripToolMarkup(text: string): string {
+  const s = String(text || '');
+  const at = s.search(TOOL_MARKUP_RE);
+  return at >= 0 ? s.slice(0, at).trimEnd() : s;
+}
+
 async function callOnce(model: ModelCfg, payload: any, timeoutMs: number, opts: { stream?: boolean; onDelta?: (delta: string, full: string) => void } = {}): Promise<any> {
   if (!model.apiKey) throw new Error(`模型 ${model.model} 未配置 API Key（env ARK_API_KEY 也为空）`);
   const useStream = opts.stream === true;
@@ -325,7 +338,7 @@ export async function chatCompletion(p: ChatCompletionParams): Promise<{
         console.warn(`[ark] 已降级到 ${model.model}（此前失败：${failedBefore.map((a: any) => `${a.model}:${a.error || a.status}`).join(' | ')}）`);
       }
       return {
-        content: msg?.content || '',
+        content: stripToolMarkup(msg?.content || ''),
         toolCalls: msg?.tool_calls || [],
         reasoning: msg?.reasoning_content || '',
         model: json.model || model.model,
