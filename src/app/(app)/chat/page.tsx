@@ -228,7 +228,7 @@ export default function ChatPage() {
                 )}
                 {live.streamText && (
                   <div className="prose prose-sm max-w-none dark:prose-invert">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{live.streamText}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{tidyMarkdown(live.streamText)}</ReactMarkdown>
                   </div>
                 )}
                 {!live.hasAnswer && !live.steps.length && <span className="text-sm text-slate-400">正在启动取证…</span>}
@@ -262,6 +262,18 @@ export default function ChatPage() {
   );
 }
 
+/**
+ * 渲染前的排版兜底。
+ * 只做两件安全的事：折叠连续空行、去掉行尾多余空格。
+ * 表格列数的修复交给提示词约束——前端猜测列数反而容易把正常表格改坏。
+ */
+function tidyMarkdown(src: string): string {
+  return String(src || '')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]+$/gm, '')
+    .trim() + '\n';
+}
+
 function MessageBubble({ msg }: { msg: Msg }) {
   if (msg.role === 'user') {
     return (
@@ -275,7 +287,7 @@ function MessageBubble({ msg }: { msg: Msg }) {
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-600 text-xs font-medium text-white">AI</div>
       <div className="flex-1 rounded-xl bg-slate-50 p-3 dark:bg-slate-700/40">
         <div className="prose prose-sm max-w-none dark:prose-invert">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{tidyMarkdown(msg.content)}</ReactMarkdown>
         </div>
         {msg.meta?.citations && msg.meta.citations.length > 0 && (
           <div className="mt-3 border-t border-slate-200 pt-2 dark:border-slate-600">

@@ -11,29 +11,30 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "next": "14.2.15",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "mysql2": "3.11.3",
-    "jsonwebtoken": "9.0.2",
     "bcryptjs": "2.4.3",
     "dayjs": "1.11.13",
     "docx": "9.1.0",
-    "mammoth": "1.8.0",
-    "xlsx": "0.18.5",
     "form-data": "4.0.1",
+    "jsonwebtoken": "9.0.2",
+    "mammoth": "1.8.0",
+    "mysql2": "3.11.3",
+    "next": "14.2.15",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "react-markdown": "9.0.1",
-    "remark-gfm": "4.0.0"
+    "remark-gfm": "4.0.0",
+    "xlsx": "0.18.5"
   },
   "devDependencies": {
-    "typescript": "5.6.2",
+    "@tailwindcss/typography": "^0.5.15",
+    "@types/bcryptjs": "2.4.6",
+    "@types/jsonwebtoken": "9.0.7",
     "@types/node": "20.16.10",
     "@types/react": "18.3.11",
     "@types/react-dom": "18.3.0",
-    "@types/jsonwebtoken": "9.0.7",
-    "@types/bcryptjs": "2.4.6",
-    "tailwindcss": "3.4.13",
+    "autoprefixer": "10.4.20",
     "postcss": "8.4.47",
-    "autoprefixer": "10.4.20"
+    "tailwindcss": "3.4.13",
+    "typescript": "5.6.2"
   }
 }
