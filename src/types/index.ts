@@ -6,7 +6,8 @@ export interface User {
   nickname?: string;
   avatar?: string;
   email?: string;
-  is_admin?: number;
+  // 后端 is_admin 字段为 tinyint，但所有 auth 接口统一转换为 boolean 后返回
+  is_admin?: boolean;
   created_at?: string;
 }
 
