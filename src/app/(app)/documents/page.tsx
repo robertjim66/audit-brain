@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useProject } from '@/components/layout/Providers';
-import { api } from '@/lib/apiClient';
+import { api, openProtectedFile } from '@/lib/apiClient';
 
 const BIZ = ['contract', 'boq', 'control_price', 'settlement', 'payment', 'visa', 'photo', 'invoice', 'other'];
 const DOCTYPE = ['pdf_text', 'pdf_mixed', 'pdf_scan', 'excel', 'word', 'photo', 'other'];
@@ -100,6 +100,11 @@ export default function DocumentsPage() {
     if (!confirm('确认删除该资料？（软删，原件留存）')) return;
     try { await api.del(`/audit/documents/${id}`); load(); } catch (e: any) { setMsg(e.message); }
   }
+  async function openOriginal(fileUrl: string) {
+    // file_url 现为 /api/files/*（需鉴权）；历史数据可能是 /uploads/*，由 rewrite 转发
+    try { await openProtectedFile(fileUrl); } catch (e: any) { setMsg('打开原件失败：' + e.message); }
+  }
+
   async function openResult(id: string) {
     try {
       const data = await api.get<any>(`/audit/documents/${id}/result`);
@@ -178,7 +183,7 @@ export default function DocumentsPage() {
                   <div className="flex flex-wrap gap-2">
                     <button onClick={() => openResult(d.id)} className="text-sky-600 hover:underline">查看</button>
                     {(d.parse_status === 'failed' || d.parse_status === 'pending') && <button onClick={() => onParse(d.id)} className="text-amber-600 hover:underline">重试</button>}
-                    <a href={d.file_url} target="_blank" rel="noreferrer" className="text-slate-500 hover:underline">原件</a>
+                    <button onClick={() => openOriginal(d.file_url)} className="text-slate-500 hover:underline">原件</button>
                     <button onClick={() => onDelete(d.id)} className="text-rose-600 hover:underline">删除</button>
                   </div>
                   {d.parse_status === 'failed' && <div className="mt-1 max-w-xs truncate text-xs text-rose-500" title={d.parse_error}>{d.parse_error}</div>}

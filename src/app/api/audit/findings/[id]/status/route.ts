@@ -17,10 +17,18 @@ export const PATCH = withHandler(async (req, ctx) => {
   if (!rows.length) throw new ApiError(404, '疑点不存在');
   await assertProject(rows[0].project_id, auth.userId);
 
-  await db.query(
-    'UPDATE audit_finding SET status=?, remark=?, updated_by=? WHERE id=?',
-    [body.status, (body.remark || '').slice(0, 500), auth.userId, id]
-  );
+  // remark 只在请求显式携带时更新：改状态不应抹掉已有的处置意见
+  if (typeof body.remark === 'string') {
+    await db.query(
+      'UPDATE audit_finding SET status=?, remark=?, updated_by=? WHERE id=?',
+      [body.status, body.remark.slice(0, 500), auth.userId, id]
+    );
+  } else {
+    await db.query(
+      'UPDATE audit_finding SET status=?, updated_by=? WHERE id=?',
+      [body.status, auth.userId, id]
+    );
+  }
   const [updated]: any = await db.query('SELECT * FROM audit_finding WHERE id=?', [id]);
   let ev: any = {};
   try { ev = JSON.parse(updated[0].evidence_json || '{}'); } catch {}

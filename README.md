@@ -82,6 +82,12 @@ openresty -t && openresty -s reload
 | 文档解析 `/api/audit/documents/` | `proxy_read_timeout 1800s` | PaddleOCR-VL 轮询耗时长（`OCR_TIMEOUT_MS` 默认 600s） |
 | 核对执行 `/api/audit/checks/` | `proxy_read_timeout 1800s` | 避免长任务中途 504 |
 | 资料上传 | `client_max_body_size 200m`、`proxy_request_buffering off` | 扫描件 / 大 PDF 直传后端 |
+| 上传原件 `/uploads/` | `return 404` | 审计原件含敏感信息，禁止匿名直链 |
+
+> **上传原件的访问路径**：原件落在 `public/uploads/`，但一律通过带鉴权的 `/api/files/*` 读取
+> （应用侧用 `beforeFiles` rewrite 把 `/uploads/*` 转发过去，OpenResty 样例里再显式 `return 404` 兜底）。
+> 前端以 `fetch` + Bearer 取回 blob 后再打开，直接 `<a href>` 不带鉴权头会被 401。
+> 部署后请确认 `GET /uploads/<任意路径>` 返回 401 或 404，而非文件内容。
 
 > 注：`.env` 中的 `TRUST_PROXY`、`ALLOWED_ORIGINS` 目前尚未被代码消费，配置里的真实 IP 透传为后续启用预留。
 
@@ -104,6 +110,15 @@ openresty -t && openresty -s reload
 - 模型配置：审计大脑模型链配置页 + `/api/audit/ai-config`（GET / PUT / test / reload，故障转移编排）
 - UI 原子组件库（Button / Card / Badge / Modal / Table / Input 等）
 
+**已知限制**
+1. 个人设置页（当前为占位）
+2. 核对程序只实现了 2 种（清单↔结算、三方签章）；`contract_payment`（合同付款核对）与 `summary_tie`（汇总勾稽）在 `constants.ts` 中已声明枚举但无实现
+3. 疑点规则产出 6 类；`no_photo`（缺少影像资料）、`duplicate`（重复计量）已声明枚举但暂无规则生成
+4. 疑点台账无手工录入入口（`source='manual'` 不可达），`remark` 现在可编辑可保存，但状态变更历史无留痕表
+5. 核对程序每次重跑会软删同类型历史记录（每种类型仅保留最近一次）
+6. 列表接口未分页：疑点全量返回、资料硬上限 500、核对项硬上限 2000
+7. 角色权限（`perm_key`）已在后台维护但审计域接口尚未按权限键校验；菜单树目前由前端硬编码
+8. OCR 页面底图未本地化（`localImage` 恒空），`bbox` 坐标已入库但前端未渲染框线
+
 **待完善**
 1. 外部 AI 集成**全链路联调**（需配置 MySQL + `ARK_API_KEY` + `OCR_KEY`）：`npm run build && npm run start` 后按自测指引冒烟（注册 → 建项目 → 上传 → 问答 → 核对 → 疑点）
-2. 个人设置页（当前为占位）

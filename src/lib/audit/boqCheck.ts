@@ -5,6 +5,7 @@
 import db from '@/lib/db';
 import snowflake from '@/lib/snowflake';
 import { htmlTableToRows, locateColumns, toNumber, cleanCell } from '@/lib/parse/tableUtils';
+import { ApiError } from '@/lib/http';
 
 const CODE_RE = /\d{9,13}/;
 const EPS = 0.01;
@@ -65,8 +66,7 @@ export async function runBoqCheck(projectId: string | number, userId: string | n
     [projectId]
   );
   if (!leftEls.length && !rightEls.length) {
-    const e: any = new Error('未在资料中识别到"分部分项"清单/结算表：需至少一份清单类(boq)与一份结算/控制价类资料并完成解析');
-    e.status = 400; throw e;
+    throw new ApiError(400, '未在资料中识别到"分部分项"清单/结算表：需至少一份清单类(boq)与一份结算/控制价类资料并完成解析');
   }
 
   const left = extractLines(leftEls, 'left');

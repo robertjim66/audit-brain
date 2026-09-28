@@ -3,6 +3,7 @@
  */
 import db from '@/lib/db';
 import snowflake from '@/lib/snowflake';
+import { ApiError } from '@/lib/http';
 
 const PARTIES = [
   { key: 'owner', name: '建设单位（发包人/甲方）', kw: /建设单位|发包人|建设方|委托单位|甲方/ },
@@ -22,8 +23,7 @@ export async function runVisaCheck(projectId: string | number, userId: string | 
   );
   const docIds = sealDocs.map((d: any) => String(d.id));
   if (!docIds.length) {
-    const e: any = new Error('未找到合同/签证类已解析资料');
-    e.status = 400; throw e;
+    throw new ApiError(400, '未找到合同/签证类已解析资料');
   }
 
   const [els]: any = await db.query(

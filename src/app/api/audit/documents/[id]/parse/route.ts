@@ -1,18 +1,11 @@
 import { requireAuth } from '@/lib/auth';
 import { ok, withHandler, ApiError } from '@/lib/http';
 import db from '@/lib/db';
-import { parseDocument } from '@/lib/parse/parseService';
+import { assertDocument } from '@/lib/audit/guard';
+import { enqueueParse } from '@/lib/parse/parseQueue';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-// 解析串行队列（避免多文件并发触发在线 OCR 限流）
-let parseChain: Promise<any> = Promise.resolve();
-function enqueueParse(documentId: string | number, userId: string) {
-  parseChain = parseChain
-    .then(() => parseDocument(documentId, userId))
-    .catch((err) => console.error('[audit] 解析队列异常:', err?.message));
-}
 
 const STALE_MS = Number(process.env.PARSE_STALE_MS || 15 * 60 * 1000);
 function isStale(doc: any): boolean {
@@ -24,6 +17,7 @@ function isStale(doc: any): boolean {
 export const POST = withHandler(async (req, ctx) => {
   const auth = await requireAuth(req);
   const id = ctx.params.id;
+  await assertDocument(id, auth.userId);
   const [rows]: any = await db.query('SELECT id, parse_status, updated_at FROM audit_document WHERE id=? AND del_flag=0', [id]);
   if (rows.length === 0) throw new ApiError(404, '资料不存在');
   const doc = rows[0];

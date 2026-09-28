@@ -10,7 +10,8 @@ type Finding = {
   finding_type: string;
   type_label: string;
   title: string;
-  desc: string;
+  description?: string | null;
+  suggestion?: string | null;
   risk_level: string;
   status: string;
   amount: number | null;
@@ -49,6 +50,12 @@ export default function FindingsPage() {
   const [running, setRunning] = useState(false);
   const [msg, setMsg] = useState('');
   const [active, setActive] = useState<Finding | null>(null);
+  const [remarkDraft, setRemarkDraft] = useState('');
+
+  function openFinding(f: Finding) {
+    setActive(f);
+    setRemarkDraft(f.remark || '');
+  }
 
   const load = useCallback(async () => {
     if (!currentProjectId) return;
@@ -58,6 +65,7 @@ export default function FindingsPage() {
     try {
       const data = await api.get<{ summary: Summary; typeLabel: Record<string, string>; total: number; list: Finding[] }>(`/audit/findings?${q.toString()}`);
       setList(data.list); setSummary(data.summary); setTypeLabel(data.typeLabel);
+      setActive((cur) => (cur && !data.list.some((x) => x.id === cur.id) ? null : cur));
     } catch (e: any) { setMsg(e.message); }
   }, [currentProjectId, riskFilter, statusFilter]);
 
@@ -75,13 +83,22 @@ export default function FindingsPage() {
     finally { setRunning(false); }
   }
 
-  async function setStatus(id: string, status: string) {
+  async function setStatus(id: string, status: string, remark?: string) {
     try {
-      await api.patch(`/audit/findings/${id}/status`, { status });
+      // 备注只在显式传入时更新，避免改状态把已有处置意见抹掉
+      const body: { status: string; remark?: string } = { status };
+      if (remark !== undefined) body.remark = remark;
+      const r = await api.patch<Finding>(`/audit/findings/${id}/status`, body);
       setMsg(`已标记为「${STATUS_LABEL[status]}」`);
       await load();
-      if (active?.id === id) setActive({ ...active, status });
+      if (active?.id === id) setActive({ ...active, ...r, status });
     } catch (e: any) { setMsg('更新失败：' + e.message); }
+  }
+
+  async function saveRemark(id: string, remark: string) {
+    const cur = list.find((x) => x.id === id) || active;
+    if (!cur) return;
+    await setStatus(id, cur.status, remark);
   }
 
   if (!currentProjectId) {
@@ -140,11 +157,11 @@ export default function FindingsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {list.map((f) => (
-                <tr key={f.id} onClick={() => setActive(f)} className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/30 ${active?.id === f.id ? 'bg-sky-50 dark:bg-sky-900/20' : ''}`}>
+                <tr key={f.id} onClick={() => openFinding(f)} className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/30 ${active?.id === f.id ? 'bg-sky-50 dark:bg-sky-900/20' : ''}`}>
                   <td className="px-3 py-2 text-slate-700 dark:text-slate-200">{f.type_label}</td>
                   <td className="max-w-xs px-3 py-2">
                     <div className="text-slate-900 dark:text-slate-100">{f.title}</div>
-                    <div className="truncate text-xs text-slate-400">{f.desc}</div>
+                    <div className="truncate text-xs text-slate-400">{f.description || '—'}</div>
                   </td>
                   <td className="px-3 py-2"><span className={`rounded-full px-2 py-0.5 text-xs ${RISK_STYLE[f.risk_level] || RISK_STYLE.low}`}>{RISK_LABEL[f.risk_level] || f.risk_level}</span></td>
                   <td className="px-3 py-2"><span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_STYLE[f.status] || STATUS_STYLE.open}`}>{STATUS_LABEL[f.status] || f.status}</span></td>
@@ -165,9 +182,9 @@ export default function FindingsPage() {
                 <span className="text-xs text-slate-400">{active.type_label}</span>
               </div>
               <h3 className="font-semibold text-slate-900 dark:text-slate-100">{active.title}</h3>
-              <p className="text-sm text-slate-600 dark:text-slate-300">{active.desc}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300">{active.description || '—'}</p>
+              {active.suggestion && <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-700 dark:bg-sky-900/20 dark:text-sky-300">审计建议：{active.suggestion}</p>}
               {active.amount != null && <p className="text-sm text-slate-500">涉及金额：¥{Number(active.amount).toLocaleString()}</p>}
-              {active.remark && <p className="rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-600 dark:bg-slate-700/40 dark:text-slate-300">处置备注：{active.remark}</p>}
               <div>
                 <div className="mb-1 text-xs text-slate-400">处置</div>
                 <div className="flex flex-wrap gap-2">
@@ -175,6 +192,23 @@ export default function FindingsPage() {
                     <button key={s} onClick={() => setStatus(active.id, s)} className={`rounded-lg px-3 py-1.5 text-sm ${STATUS_STYLE[s]} ${active.status === s ? 'ring-2 ring-sky-500' : ''}`}>{STATUS_LABEL[s]}</button>
                   ))}
                 </div>
+              </div>
+              <div>
+                <div className="mb-1 text-xs text-slate-400">处置备注</div>
+                <textarea
+                  value={remarkDraft}
+                  onChange={(e) => setRemarkDraft(e.target.value)}
+                  rows={3}
+                  placeholder="记录核实过程、沟通结论或整改要求"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
+                />
+                <button
+                  onClick={() => saveRemark(active.id, remarkDraft)}
+                  disabled={remarkDraft === (active.remark || '')}
+                  className="mt-2 rounded-lg bg-slate-600 px-3 py-1.5 text-sm text-white disabled:opacity-40"
+                >
+                  保存备注
+                </button>
               </div>
             </div>
           ) : (

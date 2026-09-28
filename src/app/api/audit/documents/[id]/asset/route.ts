@@ -1,5 +1,7 @@
 import { requireAuth } from '@/lib/auth';
 import { withHandler, ApiError } from '@/lib/http';
+import db from '@/lib/db';
+import { assertDocument } from '@/lib/audit/guard';
 import fs from 'fs';
 import path from 'path';
 import { resultDir } from '@/lib/parse/parseService';
@@ -14,7 +16,8 @@ const MIME: Record<string, string> = {
 };
 
 export const GET = withHandler(async (req, ctx) => {
-  await requireAuth(req);
+  const auth = await requireAuth(req);
+  await assertDocument(ctx.params.id, auth.userId);
   const rel = String(req.nextUrl.searchParams.get('path') || '');
   if (!rel || rel.includes('\0')) throw new ApiError(400, '非法路径');
   const base = resultDir(ctx.params.id);

@@ -62,19 +62,28 @@ export async function requireAuth(req: Request): Promise<AuthUser> {
 
 /** 判断用户是否为系统管理员（优先 is_admin 字段，回退最小 id） */
 export async function isAdmin(userId: string): Promise<boolean> {
+  let rows: any;
   try {
-    const [rows]: any = await db.query(
+    [rows] = await db.query(
       'SELECT is_admin FROM sl_sys_user WHERE id = ? AND del_flag = 0',
       [userId]
     );
-    if (rows.length > 0 && rows[0].is_admin !== undefined) {
-      return rows[0].is_admin === 1;
-    }
   } catch {
-    /* ignore */
+    // 鉴权依赖的查询失败时必须 fail-closed：若继续往下走会落到「最小 id 即管理员」的兜底，
+    // 数据库一抖动就等于给任意账号发管理员权限。
+    console.error('[auth] isAdmin 查询失败，按非管理员处理:', userId);
+    return false;
   }
-  const [users]: any = await db.query('SELECT id FROM sl_sys_user ORDER BY id LIMIT 1');
-  return users.length > 0 && String(users[0].id) === String(userId);
+  if (rows.length > 0 && rows[0].is_admin !== undefined) {
+    return rows[0].is_admin === 1;
+  }
+  // 用户存在但没有 is_admin 字段：历史数据兜底，取最早注册的账号
+  try {
+    const [users]: any = await db.query('SELECT id FROM sl_sys_user ORDER BY id LIMIT 1');
+    return users.length > 0 && String(users[0].id) === String(userId);
+  } catch {
+    return false;
+  }
 }
 
 /** 仅管理员可访问：校验身份后判断管理员权限，失败抛出 ApiError(403) */

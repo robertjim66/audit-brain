@@ -2,10 +2,12 @@ import { requireAuth } from '@/lib/auth';
 import { ok, withHandler, ApiError } from '@/lib/http';
 import db from '@/lib/db';
 import snowflake from '@/lib/snowflake';
+import { assertProject } from '@/lib/audit/guard';
+import { enqueueParse } from '@/lib/parse/parseQueue';
+import { invalidateProject } from '@/lib/audit/agent/projectStore';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { parseDocument } from '@/lib/parse/parseService';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -23,13 +25,6 @@ const ALLOW_EXT: Record<string, string> = {
   '.gif': 'image/gif',
 };
 
-let parseChain: Promise<any> = Promise.resolve();
-function enqueueParse(documentId: string | number, userId: string) {
-  parseChain = parseChain
-    .then(() => parseDocument(documentId, userId))
-    .catch((err) => console.error('[audit] 解析队列异常:', err?.message));
-}
-
 function dateDir(): string {
   const now = new Date();
   return path.join(
@@ -40,7 +35,8 @@ function dateDir(): string {
 }
 function fileUrlOf(filePath: string): string {
   const rel = path.relative(UPLOAD_ROOT, filePath).split(path.sep).join('/');
-  return '/uploads/' + rel;
+  // 统一存鉴权路径；next.config 的 beforeFiles rewrite 会把旧的 /uploads/* 也转到 /api/files
+  return '/api/files/' + rel;
 }
 function inferDocType(fileName: string, hint?: string | null): string {
   const allow = ['pdf_text', 'pdf_mixed', 'pdf_scan', 'excel', 'word', 'photo', 'other'];
@@ -75,8 +71,8 @@ export const POST = withHandler(async (req) => {
 
   let finalProjectId: string | null = null;
   if (projectId) {
-    const [proj]: any = await db.query('SELECT id FROM audit_project WHERE id=? AND del_flag=0', [projectId]);
-    if (proj.length === 0) throw new ApiError(404, '审计项目不存在');
+    // 校验归属而非仅校验存在：否则任何登录用户都能往他人项目里塞文件
+    await assertProject(projectId, auth.userId);
     finalProjectId = projectId;
   }
 
@@ -110,5 +106,7 @@ export const POST = withHandler(async (req) => {
     created.push(rows[0]);
     enqueueParse(id, auth.userId);
   }
+  // 新资料会改变 Agent 的取证语料，旧的 projectStore 缓存必须立即失效
+  invalidateProject(finalProjectId);
   return ok({ success: true, documents: created });
 });

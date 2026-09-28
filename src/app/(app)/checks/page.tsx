@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useProject } from '@/components/layout/Providers';
-import { api, getToken } from '@/lib/apiClient';
+import { api } from '@/lib/apiClient';
 
 type Prog = { id: string; program_type: string; program_name: string; status: string; summary: any };
 type Item = { id: string; item_code: string; item_name: string; qty_left: any; qty_right: any; amount_left: any; amount_right: any; diff_amount: any; conclusion: string; diff_desc: string; evidence: any };
@@ -16,11 +16,14 @@ export default function ChecksPage() {
   const [filter, setFilter] = useState('all');
   const [running, setRunning] = useState(false);
   const [msg, setMsg] = useState('');
+  // select 需要读到最新 programs（核对后立即选中新记录），闭包里的旧数组会选中已被软删的记录
+  const programsRef = useRef<Prog[]>([]);
 
   const loadPrograms = useCallback(async () => {
     if (!currentProjectId) return;
     try {
       const data = await api.get<Prog[]>(`/audit/checks/programs?project_id=${currentProjectId}`);
+      programsRef.current = data;
       setPrograms(data);
     } catch (e: any) { setMsg(e.message); }
   }, [currentProjectId]);
@@ -31,20 +34,22 @@ export default function ChecksPage() {
     if (!currentProjectId) return;
     setRunning(true); setMsg('正在核对（纯算法，无需外部密钥）…');
     try {
-      const r = await api.post('/audit/checks/run', { project_id: currentProjectId, program_type: type });
+      const r = await api.post<{ programId: string; summary: any; findings: any }>('/audit/checks/run', { project_id: currentProjectId, program_type: type });
       setMsg(`核对完成：${type === 'boq_settlement' ? '清单↔结算' : '三方签章'}。差异 ${r.summary?.diff ?? 0}，疑点扫描 ${r.findings?.total ?? 0} 条`);
       await loadPrograms();
-      if (programs[0]) select(programs[0].id);
+      // 用 run 返回的 programId 选中新记录：programs 是刷新前的旧数组，取 [0] 会选中刚被软删的那条
+      if (r.programId) await select(r.programId);
     } catch (e: any) { setMsg('核对失败：' + e.message); }
     finally { setRunning(false); }
   }
 
-  async function select(id: string) {
-    const p = programs.find((x) => x.id === id);
+  async function select(id: string, conclFilter = filter) {
+    const p = programsRef.current.find((x) => x.id === id);
     setActive(p || null);
+    setItems([]);
     if (p) {
       try {
-        const its = await api.get<Item[]>(`/audit/checks/programs/${id}/items?conclusion=${filter}`);
+        const its = await api.get<Item[]>(`/audit/checks/programs/${id}/items?conclusion=${conclFilter}`);
         setItems(its);
       } catch (e: any) { setMsg(e.message); }
     }
@@ -52,11 +57,9 @@ export default function ChecksPage() {
 
   async function download(path: string, name: string) {
     if (!currentProjectId) return;
-    const token = getToken();
-    const res = await fetch(`/api/audit/checks/${path}?project_id=${currentProjectId}`, { headers: { Authorization: `Bearer ${token}` } });
-    const blob = await res.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    try {
+      await api.download(`/audit/checks/${path}?project_id=${currentProjectId}`, name);
+    } catch (e: any) { setMsg('导出失败：' + e.message); }
   }
 
   if (!currentProjectId) {
@@ -103,7 +106,7 @@ export default function ChecksPage() {
 
           <div className="flex gap-2">
             {['all', 'diff', 'unconfirmed', 'match'].map((c) => (
-              <button key={c} onClick={() => { setFilter(c); if (active) select(active.id); }} className={`rounded px-3 py-1 text-sm ${filter === c ? 'bg-sky-600 text-white' : 'bg-slate-100 dark:bg-slate-700'}`}>{c === 'all' ? '全部' : conclLabel[c]}</button>
+              <button key={c} onClick={() => { setFilter(c); if (active) select(active.id, c); }} className={`rounded px-3 py-1 text-sm ${filter === c ? 'bg-sky-600 text-white' : 'bg-slate-100 dark:bg-slate-700'}`}>{c === 'all' ? '全部' : conclLabel[c]}</button>
             ))}
           </div>
 

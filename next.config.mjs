@@ -5,6 +5,17 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['mysql2', 'docx', 'xlsx', 'mammoth', 'bcryptjs', 'pdf-parse'],
   },
+  async rewrites() {
+    return {
+      beforeFiles: [
+        // 上传原件必须经过带鉴权的 /api/files；beforeFiles 保证优先于 public 静态命中，
+        // 避免 public/uploads 下的文件被匿名直链（历史遗留文件同样被拦住）。
+        { source: '/uploads/:path*', destination: '/api/files/:path*' },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
 };
 
 export default nextConfig;

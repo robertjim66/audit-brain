@@ -76,6 +76,32 @@ export async function apiFetch<T = any>(
   return body as T;
 }
 
+/**
+ * 以带鉴权的方式在新标签页打开受保护的文件（如上传原件）。
+ * 普通的 <a href> 不会带 Bearer 头，因此不能直接指向 /api/files/*。
+ */
+export async function openProtectedFile(path: string): Promise<void> {
+  const res = await fetch(path.startsWith('/api') ? path : `${API_BASE}${path}`, {
+    headers: (() => {
+      const h = new Headers();
+      const token = getToken();
+      if (token) h.set('Authorization', `Bearer ${token}`);
+      return h;
+    })(),
+  });
+  if (res.status === 401) {
+    clearToken();
+    if (typeof window !== 'undefined') window.location.href = '/login';
+    throw new ApiClientError(401, '登录已过期，请重新登录');
+  }
+  if (!res.ok) throw new ApiClientError(res.status, `打开文件失败（HTTP ${res.status}）`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank', 'noopener');
+  // 新标签页已接手 blob，延迟回收
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 export const api = {
   get: <T = any>(path: string) => apiFetch<T>(path, { method: 'GET' }),
   post: <T = any>(path: string, data?: any) =>
@@ -88,4 +114,34 @@ export const api = {
   // 文件上传：multipart，Content-Type 由浏览器生成（apiFetch 对 FormData 不再设 JSON 头）
   upload: <T = any>(path: string, formData: FormData) =>
     apiFetch<T>(path, { method: 'POST', body: formData }),
+  /** 带鉴权下载并触发浏览器下载（用于导出等非 JSON 二进制响应） */
+  download: async (path: string, fileName: string): Promise<void> => {
+    const res = await fetch(path.startsWith('/api') ? path : `${API_BASE}${path}`, {
+      headers: (() => {
+        const h = new Headers();
+        const token = getToken();
+        if (token) h.set('Authorization', `Bearer ${token}`);
+        return h;
+      })(),
+    });
+    if (res.status === 401) {
+      clearToken();
+      if (typeof window !== 'undefined') window.location.href = '/login';
+      throw new ApiClientError(401, '登录已过期，请重新登录');
+    }
+    if (!res.ok) {
+      let detail = `请求失败（HTTP ${res.status}）`;
+      try {
+        const body = JSON.parse(await res.text());
+        if (body?.error) detail = body.error;
+      } catch {}
+      throw new ApiClientError(res.status, detail);
+    }
+    const url = URL.createObjectURL(await res.blob());
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 };

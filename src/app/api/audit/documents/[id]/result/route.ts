@@ -1,13 +1,15 @@
 import { requireAuth } from '@/lib/auth';
 import { ok, withHandler, ApiError } from '@/lib/http';
 import db from '@/lib/db';
+import { assertDocument } from '@/lib/audit/guard';
 import { loadResult } from '@/lib/parse/parseService';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export const GET = withHandler(async (req, ctx) => {
-  await requireAuth(req);
+  const auth = await requireAuth(req);
+  await assertDocument(ctx.params.id, auth.userId);
   const [rows]: any = await db.query('SELECT * FROM audit_document WHERE id=? AND del_flag=0', [ctx.params.id]);
   if (rows.length === 0) throw new ApiError(404, '资料不存在');
   const doc = rows[0];

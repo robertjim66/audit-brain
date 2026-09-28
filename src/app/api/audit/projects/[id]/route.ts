@@ -1,14 +1,16 @@
 import { withHandler, readJson, ApiError } from '@/lib/http';
 import { requireAuth } from '@/lib/auth';
 import db from '@/lib/db';
+import { assertProject } from '@/lib/audit/guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // GET /api/audit/projects/:id —— 详情（含统计）
 export const GET = withHandler(async (req, ctx) => {
-  await requireAuth(req);
+  const auth = await requireAuth(req);
   const id = ctx.params.id;
+  await assertProject(id, auth.userId);
   const [rows]: any = await db.query(
     `SELECT p.*,
        (SELECT COUNT(*) FROM audit_document d WHERE d.project_id=p.id AND d.del_flag=0) AS doc_count,
@@ -26,6 +28,7 @@ export const GET = withHandler(async (req, ctx) => {
 export const PUT = withHandler(async (req, ctx) => {
   const auth = await requireAuth(req);
   const id = ctx.params.id;
+  await assertProject(id, auth.userId);
   const fields = ['project_name', 'project_code', 'audit_type', 'audit_period', 'description', 'status', 'remark'];
   const sets: string[] = [];
   const params: any[] = [];
@@ -49,6 +52,7 @@ export const PUT = withHandler(async (req, ctx) => {
 export const DELETE = withHandler(async (req, ctx) => {
   const auth = await requireAuth(req);
   const id = ctx.params.id;
+  await assertProject(id, auth.userId);
   await db.query('UPDATE audit_project SET del_flag=1, updated_by=? WHERE id=?', [auth.userId, id]);
   await db.query('UPDATE audit_document SET del_flag=1 WHERE project_id=?', [id]);
   await db.query('UPDATE audit_element SET del_flag=1 WHERE project_id=?', [id]);

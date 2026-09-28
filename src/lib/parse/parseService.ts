@@ -11,6 +11,7 @@ import { parseExcel } from './excelParser';
 import { parseWord } from './wordParser';
 import { parseOcr } from './ocrParser';
 import { PaddleOcrError } from './paddleOcrClient';
+import { invalidateProject } from '../audit/agent/projectStore';
 
 const UPLOAD_ROOT = path.join(process.cwd(), 'public', 'uploads');
 const DATA_ROOT = path.join(UPLOAD_ROOT, 'audit-parse');
@@ -32,8 +33,11 @@ export function loadResult(documentId: string | number): any | null {
 
 function resolveLocalPath(doc: any): string | null {
   if (doc.file_path && fs.existsSync(doc.file_path)) return doc.file_path;
-  if (doc.file_url && doc.file_url.startsWith('/uploads/')) {
-    const candidate = path.join(UPLOAD_ROOT, doc.file_url.replace(/^\/uploads\//, ''));
+  // file_url 新数据为 /api/files/*，历史数据为 /uploads/*，两种前缀都还原到磁盘路径
+  const url = String(doc.file_url || '');
+  const rel = url.replace(/^\/(api\/files|uploads)\//, '');
+  if (rel && rel !== url) {
+    const candidate = path.join(UPLOAD_ROOT, rel);
     if (fs.existsSync(candidate)) return candidate;
   }
   return null;
@@ -148,6 +152,8 @@ async function _runParse(documentId: string | number, operatorUserId?: string): 
         ocr_job_id=?, result_path=?, page_count=?, sheet_count=?, summary_text=?, updated_at=NOW(3) WHERE id=?`,
       [jobId, `audit-parse/${documentId}`, pageCount, sheetCount, makeSummary(parsed.markdownText), documentId]
     );
+    // 解析结果变了，Agent 的项目语料缓存必须失效，否则会按 3 分钟前的旧内容取证
+    invalidateProject(doc.project_id);
     return { ok: true };
   } catch (err: any) {
     const msg = err instanceof PaddleOcrError ? `${err.message}${err.code ? '（' + err.code + '）' : ''}` : err.message;
@@ -155,6 +161,7 @@ async function _runParse(documentId: string | number, operatorUserId?: string): 
       "UPDATE audit_document SET parse_status='failed', parse_progress=0, parse_error=? WHERE id=?",
       [String(msg).slice(0, 1900), documentId]
     ).catch(() => {});
+    invalidateProject(doc.project_id);
     return { ok: false, error: msg };
   }
 }
