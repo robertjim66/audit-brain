@@ -26,8 +26,6 @@ const NAV: NavItem[] = [
   { key: 'ai-config', label: '模型配置', icon: '🤖', href: '/admin/ai-model-config', adminOnly: true },
   { key: 'admin-users', label: '用户管理', icon: '👥', href: '/admin/users', adminOnly: true },
   { key: 'admin-roles', label: '角色管理', icon: '🔑', href: '/admin/roles', adminOnly: true },
-  { key: 'admin-menus', label: '菜单管理', icon: '📋', href: '/admin/menus', adminOnly: true },
-  { key: 'admin-dict', label: '字典管理', icon: '🏷️', href: '/admin/dict', adminOnly: true },
   { key: 'profile', label: '个人设置', icon: '⚙️', href: '/profile' },
 ];
 
@@ -54,7 +52,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; };
   }, [currentProjectId]);
 
-  const isAdmin = user?.is_admin === 1;
+  const isAdmin = user?.is_admin === true;
   const visibleNav = NAV.filter((n) => !n.adminOnly || isAdmin);
 
   return (

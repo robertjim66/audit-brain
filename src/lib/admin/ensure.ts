@@ -164,26 +164,4 @@ export async function ensureMenuTables(): Promise<void> {
   `);
 }
 
-export async function ensureDictTable(): Promise<void> {
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS sl_sys_dict (
-      id          BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '主键（雪花算法生成）',
-      dict_type   VARCHAR(50)  NOT NULL COMMENT '字典类型',
-      dict_code   VARCHAR(50)  NOT NULL COMMENT '字典项编码',
-      dict_label  VARCHAR(100) NOT NULL COMMENT '字典项显示名称',
-      dict_icon   VARCHAR(20)  DEFAULT NULL COMMENT '字典项图标（emoji）',
-      sort_order  INT NOT NULL DEFAULT 0 COMMENT '排序值',
-      status      TINYINT NOT NULL DEFAULT 1 COMMENT '状态：1启用 0停用',
-      del_flag    TINYINT NOT NULL DEFAULT 0 COMMENT '删除标志',
-      created_by  BIGINT UNSIGNED DEFAULT NULL,
-      created_at  DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-      updated_by  BIGINT UNSIGNED DEFAULT NULL,
-      updated_at  DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
-      remark      VARCHAR(500) DEFAULT NULL,
-      UNIQUE KEY uk_type_code (dict_type, dict_code),
-      INDEX idx_type (dict_type)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通用字典表'
-  `);
-}
-
 export { snowflake };
