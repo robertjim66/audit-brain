@@ -21,6 +21,7 @@ src/
     (app)/            # 受保护的后台布局（侧边栏 + 顶栏）
       cockpit/ projects/ documents/ chat/ checks/ findings/ admin/ profile/
     api/              # Route Handlers（auth / audit/* / version）
+  lib/audit/member.ts # 项目成员（owner/reviewer）可见性判定
     login/ page.tsx   # 登录 / 注册
   components/         # UI 原子组件 + 布局（AppShell / Providers / Toast）
   lib/                # db / auth / snowflake / configStore / apiClient / constants
@@ -103,7 +104,8 @@ openresty -t && openresty -s reload
 - 基础设施：db / snowflake / auth(JWT+RBAC) / configStore（统一配置中心，密钥脱敏）/ apiClient / 类型
 - 认证：登录 / 注册 / 改密 / me + 登录页 + 路由守卫
 - 个人设置：资料维护（昵称 / 邮箱，`PUT /api/auth/me`）+ 改密 + 主题偏好 + 当前项目上下文
-- 审计项目：列表 / 新建 / 详情 / 更新 / 删除 API + 卡片页 + 驾驶舱统计
+- 审计项目：列表 / 新建 / 详情 / 更新 / 删除 API + 卡片页 + 项目详情页 + 驾驶舱统计
+- 项目协作：`audit_project_member` 成员表（owner 归属人 / reviewer 复核人）+ 成员分配 UI + 顶栏项目切换器
 - 资料舱：上传 + 解析（PaddleOCR-VL 管线）+ 原件查看（Excel / Word / OCR bbox 框线）
 - 智能问答：SSE 流式 + 证据溯源角标 / 抽屉 + Agent 取证工具（模型链故障转移）
 - 核对程序 + 疑点台账：确定性核对逻辑 + 规则扫描 + 处置 + 导出
@@ -120,6 +122,7 @@ openresty -t && openresty -s reload
 6. 角色权限（`perm_key`）在 `sl_sys_menu` 中维护并可按角色分配，但审计域接口尚未按权限键校验；侧边栏菜单由前端硬编码，未读取 `/api/admin/menus/my`
 7. OCR 页面底图未本地化（`localImage` 恒空），`bbox` 坐标已入库但前端未渲染框线
 8. 头像字段（`avatar`）已在用户表预留，个人设置页暂未提供上传
+9. 项目成员变更无留痕表（谁在何时把谁加为/移出项目），成员管理页不展示操作历史
 
 **待完善**
 1. 外部 AI 集成**全链路联调**（需配置 MySQL + `ARK_API_KEY` + `OCR_KEY`）：`npm run build && npm run start` 后按自测指引冒烟（注册 → 建项目 → 上传 → 问答 → 核对 → 疑点）

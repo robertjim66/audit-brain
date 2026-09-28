@@ -37,20 +37,31 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [projectName, setProjectName] = useState<string | null>(null);
+  const [myProjects, setMyProjects] = useState<AuditProject[]>([]);
+
+  // 我参与的项目（归属人 + 复核人），供顶栏切换
+  useEffect(() => {
+    let cancelled = false;
+    api.get<AuditProject[]>('/audit/projects')
+      .then((list) => { if (!cancelled) setMyProjects(list || []); })
+      .catch(() => { if (!cancelled) setMyProjects([]); });
+    return () => { cancelled = true; };
+  }, [currentProjectId]);
 
   // 顶栏显示项目名而非雪花 ID：按当前项目 id 查一次名称（AppShell 每次整页加载只挂载一次）
   useEffect(() => {
     if (!currentProjectId) { setProjectName(null); return; }
-    let cancelled = false;
-    api.get<AuditProject[]>('/audit/projects')
-      .then((list) => {
-        if (cancelled) return;
-        const hit = (list || []).find((p) => String(p.id) === String(currentProjectId));
-        setProjectName(hit?.project_name || null);
-      })
-      .catch(() => { if (!cancelled) setProjectName(null); });
-    return () => { cancelled = true; };
-  }, [currentProjectId]);
+    const hit = myProjects.find((p) => String(p.id) === String(currentProjectId));
+    setProjectName(hit?.project_name || null);
+  }, [currentProjectId, myProjects]);
+
+  // 当前项目已不在可见列表（如被移除成员或项目被删）时清空上下文，避免各模块查到空数据
+  useEffect(() => {
+    if (!currentProjectId || !myProjects.length) return;
+    if (!myProjects.some((p) => String(p.id) === String(currentProjectId))) {
+      setCurrentProject(null);
+    }
+  }, [currentProjectId, myProjects, setCurrentProject]);
 
   const isAdmin = user?.is_admin === true;
   const visibleNav = NAV.filter((n) => !n.adminOnly || isAdmin);
@@ -96,7 +107,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* 顶栏 */}
         <header className="h-14 border-b border-border bg-card flex items-center justify-between px-5">
           <div className="flex items-center gap-3 min-w-0">
-            {currentProjectId ? (
+            {myProjects.length > 0 ? (
+              <select
+                value={currentProjectId || ''}
+                onChange={(e) => setCurrentProject(e.target.value || null)}
+                className="max-w-[280px] rounded-lg border border-border bg-bg px-2.5 py-1.5 text-sm text-text-secondary outline-none focus:border-primary"
+                title="切换审计项目"
+              >
+                <option value="">选择审计项目…</option>
+                {myProjects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.project_name}{p.my_role === 'reviewer' ? '（参与）' : ''}
+                  </option>
+                ))}
+              </select>
+            ) : currentProjectId ? (
               <span className="text-sm text-text-secondary truncate">
                 当前项目：<span className="text-primary font-medium">{projectName || currentProjectId}</span>
               </span>

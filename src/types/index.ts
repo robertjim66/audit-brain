@@ -11,6 +11,8 @@ export interface User {
   created_at?: string;
 }
 
+export type ProjectRole = 'owner' | 'reviewer';
+
 export interface AuditProject {
   id: string;
   project_name: string;
@@ -26,12 +28,28 @@ export interface AuditProject {
   parsed_count?: number;
   failed_count?: number;
   finding_count?: number;
+  member_count?: number;
+  /** 当前用户在该项目中的角色；非成员为 null */
+  my_role?: ProjectRole | null;
+  /** 当前用户是否可编辑项目、管理成员（仅 owner） */
+  can_manage?: boolean;
   del_flag?: number;
   created_by?: string;
   created_at?: string;
   updated_by?: string;
   updated_at?: string;
   remark?: string | null;
+}
+
+export interface ProjectMember {
+  id: string;
+  user_id: string;
+  project_role: ProjectRole;
+  username?: string;
+  nickname?: string;
+  email?: string | null;
+  is_admin?: boolean;
+  created_at?: string;
 }
 
 export interface AuditDocument {

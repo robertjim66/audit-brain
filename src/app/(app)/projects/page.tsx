@@ -71,7 +71,7 @@ export default function ProjectsPage() {
 
   function enterProject(p: AuditProject) {
     setCurrentProject(p.id);
-    router.push('/documents');
+    router.push(`/projects/${p.id}`);
   }
 
   return (
@@ -79,7 +79,7 @@ export default function ProjectsPage() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-xl font-bold text-text">审计项目</h1>
-          <p className="text-sm text-text-muted mt-0.5">管理你的工程审计项目，点击卡片进入资料舱</p>
+          <p className="text-sm text-text-muted mt-0.5">你参与的项目（归属人 + 复核人），点击卡片查看详情与成员</p>
         </div>
         <div className="flex gap-2">
           <Input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="搜索项目名称/编号" className="w-56" />
@@ -95,24 +95,36 @@ export default function ProjectsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {list.map((p) => (
             <Card key={p.id} className="p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => enterProject(p)}>
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-semibold text-text truncate">{p.project_name}</div>
                   <div className="text-xs text-text-muted mt-0.5">{p.project_code || '无编号'} · {AUDIT_TYPES.find((t) => t.value === p.audit_type)?.label || p.audit_type}</div>
                 </div>
-                <Badge color={p.status === 1 ? 'success' : 'primary'}>
-                  {PROJECT_STATUS.find((s) => s.value === p.status)?.label}
-                </Badge>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <Badge color={p.status === 1 ? 'success' : 'primary'}>
+                    {PROJECT_STATUS.find((s) => s.value === p.status)?.label}
+                  </Badge>
+                  {p.my_role && (
+                    <Badge color={p.my_role === 'owner' ? 'primary' : 'muted'}>
+                      {p.my_role === 'owner' ? '我负责' : '我参与'}
+                    </Badge>
+                  )}
+                </div>
               </div>
               {p.description && <p className="text-sm text-text-secondary mt-2 line-clamp-2">{p.description}</p>}
               <div className="flex gap-4 mt-3 text-xs text-text-muted">
                 <span>资料 {p.doc_count || 0}</span>
                 <span>已解析 {p.parsed_count || 0}</span>
                 <span>疑点 {p.finding_count || 0}</span>
+                {(p.member_count || 0) > 1 && <span>成员 {p.member_count}</span>}
               </div>
               <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
-                <Button variant="secondary" size="sm" onClick={() => openEdit(p)}>编辑</Button>
-                <Button variant="ghost" size="sm" className="text-danger" onClick={() => remove(p)}>删除</Button>
+                {p.can_manage && (
+                  <>
+                    <Button variant="secondary" size="sm" onClick={() => openEdit(p)}>编辑</Button>
+                    <Button variant="ghost" size="sm" className="text-danger" onClick={() => remove(p)}>删除</Button>
+                  </>
+                )}
               </div>
             </Card>
           ))}
