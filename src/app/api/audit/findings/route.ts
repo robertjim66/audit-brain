@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/auth';
 import { ok, withHandler, ApiError } from '@/lib/http';
 import db from '@/lib/db';
 import { assertProject } from '@/lib/audit/guard';
+import { latestHandlers } from '@/lib/audit/dispose';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -38,7 +39,9 @@ export const GET = withHandler(async (req) => {
   sql += ' ORDER BY FIELD(risk_level,"high","mid","low"), id';
 
   const [rows]: any = await db.query(sql, params);
-  const list = rows.map(decode);
+  // 附带每条疑点最近一次处置的处理人（仅非 open 状态才有）
+  const handlers = await latestHandlers(rows.map((r: any) => String(r.id)));
+  const list = rows.map((r: any) => ({ ...decode(r), handler: handlers[String(r.id)] || null }));
 
   const [all]: any = await db.query(
     'SELECT risk_level, status, finding_type FROM audit_finding WHERE project_id=? AND del_flag=0',

@@ -27,10 +27,13 @@ async function loadProjectData(projectId: string | number) {
     "SELECT * FROM audit_finding WHERE project_id=? AND del_flag=0 ORDER BY FIELD(risk_level,'high','mid','low'), id",
     [projectId]
   );
+  // 每条疑点最近一次处置的处理人（内部台账用；对外 Word 清单不含此列）
+  const { latestHandlers } = await import('@/lib/audit/dispose');
+  const handlers = await latestHandlers(findings.map((f: any) => String(f.id)));
   return {
     programs: programs.map((p: any) => ({ ...p, summary: (() => { try { return JSON.parse(p.summary_json || '{}'); } catch { return {}; } })() })),
     items: items.map((i: any) => ({ ...i, evidence: (() => { try { return JSON.parse(i.evidence_json || '{}'); } catch { return {}; } })() })),
-    findings,
+    findings: findings.map((f: any) => ({ ...f, handler: handlers[String(f.id)] || null })),
   };
 }
 
@@ -69,16 +72,20 @@ export async function buildChecksWorkbook(projectId: string | number): Promise<B
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(visaAoa), '签章核对');
 
   // 4. 疑点台账
-  const findAoa: any[] = [['类型', '标题', '风险', '描述', '建议', '金额', '证据位置', '状态']];
+  // 内部工作底稿：加「处理人 / 处置时间」两列，便于追溯责任
+  const findAoa: any[] = [['类型', '标题', '风险', '描述', '建议', '金额', '证据位置', '状态', '处理人', '处置时间']];
   findings.forEach((f: any) => {
     const ev = (() => { try { return JSON.parse(f.evidence_json || '{}'); } catch { return {}; } })();
     const loc = [ev.left?.fileName, ev.left?.pageNo ? `第${ev.left.pageNo}页` : '', ev.right?.fileName].filter(Boolean).join('/');
+    const h = f.handler;
     findAoa.push([
       TYPE_LABEL[f.finding_type] || f.finding_type, f.title, f.risk_level, f.description || '', f.suggestion || '',
       ev.amount != null ? ev.amount : '', loc, STATUS_LABEL[f.status] || f.status,
+      h ? (h.nickname || h.username || '') : '',
+      h && h.created_at ? String(h.created_at).slice(0, 16) : '',
     ]);
   });
-  if (findAoa.length === 1) findAoa.push(['（暂无疑点）', '', '', '', '', '', '', '']);
+  if (findAoa.length === 1) findAoa.push(['（暂无疑点）', '', '', '', '', '', '', '', '', '']);
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(findAoa), '疑点台账');
 
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;

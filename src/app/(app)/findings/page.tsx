@@ -5,6 +5,17 @@ import Link from 'next/link';
 import { useProject } from '@/components/layout/Providers';
 import { api } from '@/lib/apiClient';
 
+type DisposeEntry = {
+  id: string;
+  from_status: string | null;
+  to_status: string;
+  remark: string | null;
+  created_at: string;
+  operator_id: string;
+  username: string | null;
+  nickname: string | null;
+};
+
 type Finding = {
   id: string;
   finding_type: string;
@@ -18,6 +29,8 @@ type Finding = {
   evidence: any;
   created_at: string;
   remark?: string;
+  /** 最近一次处置的处理人；未处置为 null */
+  handler?: DisposeEntry | null;
 };
 
 type Summary = {
@@ -40,6 +53,16 @@ const STATUS_STYLE: Record<string, string> = {
   closed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
 };
 
+/** datetime(3) 或 ISO 串 → "09-29 10:15" */
+function formatTime(v?: string | null): string {
+  const s = String(v || '');
+  if (!s) return '';
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return s.slice(0, 16).replace('T', ' ');
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 export default function FindingsPage() {
   const { currentProjectId } = useProject();
   const [list, setList] = useState<Finding[]>([]);
@@ -51,10 +74,29 @@ export default function FindingsPage() {
   const [msg, setMsg] = useState('');
   const [active, setActive] = useState<Finding | null>(null);
   const [remarkDraft, setRemarkDraft] = useState('');
+  const [disposeLog, setDisposeLog] = useState<DisposeEntry[] | null>(null);
+  const [showLog, setShowLog] = useState(false);
 
   function openFinding(f: Finding) {
     setActive(f);
     setRemarkDraft(f.remark || '');
+    setDisposeLog(null);
+    setShowLog(false);
+  }
+
+  /** 处置历史按需加载：点开才请求，避免打开详情面板就多打一次接口 */
+  async function toggleLog() {
+    if (showLog) { setShowLog(false); return; }
+    setShowLog(true);
+    if (disposeLog) return;
+    if (!active) return;
+    try {
+      const rows = await api.get<DisposeEntry[]>(`/audit/findings/${active.id}/dispose`);
+      setDisposeLog(rows || []);
+    } catch (e: any) {
+      setDisposeLog([]);
+      setMsg('处置历史加载失败：' + e.message);
+    }
   }
 
   const load = useCallback(async () => {
@@ -92,6 +134,12 @@ export default function FindingsPage() {
       setMsg(`已标记为「${STATUS_LABEL[status]}」`);
       await load();
       if (active?.id === id) setActive({ ...active, ...r, status });
+      // 状态变了，处置历史需要重新取
+      if (showLog && active?.id === id) {
+        try {
+          setDisposeLog(await api.get<DisposeEntry[]>(`/audit/findings/${id}/dispose`));
+        } catch { setDisposeLog([]); }
+      }
     } catch (e: any) { setMsg('更新失败：' + e.message); }
   }
 
@@ -182,6 +230,12 @@ export default function FindingsPage() {
                 <span className="text-xs text-slate-400">{active.type_label}</span>
               </div>
               <h3 className="font-semibold text-slate-900 dark:text-slate-100">{active.title}</h3>
+              {active.status !== 'open' && (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  处理人：{active.handler?.nickname || active.handler?.username || '—'}
+                  {active.handler?.created_at ? ` · ${formatTime(active.handler.created_at)}` : ''}
+                </p>
+              )}
               <p className="text-sm text-slate-600 dark:text-slate-300">{active.description || '—'}</p>
               {active.suggestion && <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-700 dark:bg-sky-900/20 dark:text-sky-300">审计建议：{active.suggestion}</p>}
               {active.amount != null && <p className="text-sm text-slate-500">涉及金额：¥{Number(active.amount).toLocaleString()}</p>}
@@ -209,6 +263,37 @@ export default function FindingsPage() {
                 >
                   保存备注
                 </button>
+              </div>
+              <div>
+                <button
+                  onClick={toggleLog}
+                  className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                >
+                  <span>{showLog ? '▾' : '▸'}</span>
+                  处置历史{disposeLog && disposeLog.length > 0 ? `（${disposeLog.length}）` : ''}
+                </button>
+                {showLog && (
+                  <div className="mt-2 space-y-1.5">
+                    {disposeLog === null && <p className="text-xs text-slate-400">加载中…</p>}
+                    {disposeLog && disposeLog.length === 0 && (
+                      <p className="text-xs text-slate-400">尚无处置记录</p>
+                    )}
+                    {disposeLog?.map((d) => (
+                      <div key={d.id} className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs dark:bg-slate-700/40">
+                        <div className="text-slate-600 dark:text-slate-300">
+                          <span className="font-medium">{d.nickname || d.username || '未知用户'}</span>
+                          <span className="text-slate-400">
+                            {d.from_status && d.from_status !== d.to_status
+                              ? ` 将状态从「${STATUS_LABEL[d.from_status] || d.from_status}」改为「${STATUS_LABEL[d.to_status] || d.to_status}」`
+                              : ` 保存了「${STATUS_LABEL[d.to_status] || d.to_status}」的处置备注`}
+                          </span>
+                        </div>
+                        <div className="text-slate-400">{formatTime(d.created_at)}</div>
+                        {d.remark && <div className="mt-0.5 text-slate-500 dark:text-slate-400">备注：{d.remark}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ) : (

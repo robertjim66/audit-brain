@@ -4,6 +4,7 @@
  */
 import db from '@/lib/db';
 import snowflake from '@/lib/snowflake';
+import { archiveKey, ensureDisposeTable } from '@/lib/audit/dispose';
 
 const SOURCES_AUTO = ['check', 'scan'];
 
@@ -261,6 +262,48 @@ async function scanVisaClustering(projectId: string | number): Promise<any[]> {
   return out;
 }
 
+/**
+ * 扫描重建后，把「最近一次处置的处理人」承接��新生成的疑点记录。
+ *
+ * 扫描会把旧疑点软删、以新雪花 ID 插入，而处置流水记的是旧 ID。
+ * 不承接的话，新记录查不到处理人，责任链在这一步就断了。
+ *
+ * 做法：查该项目该事项最近一条非 open 流水，在新记录上补一条 from_status=NULL
+ * 的承接记录，沿用原处理人与处置状态。这样展示端能读到处理人，审计侧也能看出
+ * 该记录承接自哪次处置。
+ * 取不到时保持「未处置」——宁可显示不出处理人，也不要张冠李戴。
+ */
+async function reattachHandler(p: {
+  newFindingId: string;
+  projectId: string | number;
+  findingType: string;
+  title: string;
+}): Promise<void> {
+  try {
+    await ensureDisposeTable();
+    const [rows]: any = await db.query(
+      `SELECT d.to_status, d.operator_id
+       FROM audit_finding_dispose d
+       WHERE d.project_id = ? AND d.finding_type = ? AND d.title = ? AND d.to_status <> 'open'
+       ORDER BY d.created_at DESC, d.id DESC
+       LIMIT 1`,
+      [String(p.projectId), p.findingType, p.title]
+    );
+    if (!rows.length) return;
+    await db.query(
+      `INSERT INTO audit_finding_dispose
+         (id, finding_id, project_id, finding_type, title, from_status, to_status, operator_id, remark)
+       VALUES (?,?,?,?,?,?,?,?,?)`,
+      [
+        snowflake.nextId(), p.newFindingId, String(p.projectId), p.findingType, p.title,
+        null, String(rows[0].to_status), String(rows[0].operator_id), null,
+      ]
+    );
+  } catch (e: any) {
+    console.warn('[findingScan] 承接处理人失败，不影响扫描结果:', e?.message);
+  }
+}
+
 export async function runFindingScan(projectId: string | number, userId: string | number): Promise<any> {
   const collected = [
     ...await scanCheckDiffs(projectId),
@@ -270,12 +313,15 @@ export async function runFindingScan(projectId: string | number, userId: string 
     ...await scanVisaClustering(projectId),
   ];
 
+  // 归档键用「项目 + 类型 + 标题」。查询本身已按 project_id 过滤，
+  // 这里带上 projectId 是为了让键的语义与 audit_finding_dispose 的
+  // idx_archive 归档键完全一致，两处按同一把尺子认领同一条疑点。
   const [olds]: any = await db.query(
     `SELECT finding_type, title, status, remark FROM audit_finding
       WHERE project_id = ? AND del_flag = 0 AND source IN (${SOURCES_AUTO.map(() => '?').join(',')})`,
     [projectId, ...SOURCES_AUTO]
   );
-  const carry = new Map<string, any>(olds.map((o: any) => [`${o.finding_type}|${o.title}`, o]));
+  const carry = new Map<string, any>(olds.map((o: any) => [archiveKey(projectId, o.finding_type, o.title), o]));
 
   await db.query(
     `UPDATE audit_finding SET del_flag = 1, updated_by = ?
@@ -289,19 +335,26 @@ export async function runFindingScan(projectId: string | number, userId: string 
   const byType: Record<string, number> = {};
   for (const f of collected) {
     byType[f.finding_type] = (byType[f.finding_type] || 0) + 1;
-    const old = carry.get(`${f.finding_type}|${f.title}`);
+    const title = String(f.title).slice(0, 255);
+    const old = carry.get(archiveKey(projectId, f.finding_type, title));
     const evidence: any = { ...(f.evidence || {}) };
     if (f.amount != null) evidence.amount = f.amount;
+    const newId = String(snowflake.nextId());
     await db.query(
       `INSERT INTO audit_finding
          (id, project_id, finding_type, title, risk_level, description, evidence_json, suggestion,
           source, ref_id, status, remark, created_by, updated_by)
        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [String(snowflake.nextId()), projectId, f.finding_type, String(f.title).slice(0, 255), f.risk_level,
+      [newId, projectId, f.finding_type, title, f.risk_level,
         f.description || null, JSON.stringify(evidence), (f.suggestion || '').slice(0, 500),
         f.source || 'scan', f.ref_id || null, old ? old.status : 'open', old ? old.remark : null,
         userId, userId]
     );
+
+    // 承接上一轮的处理人：扫描会把疑点软删后以新雪花 ID 重建，
+    // 若不重挂，最近一次处置就会变空，「这条谁处理的」就此丢失。
+    // 按归档键找该项目该事项的最近一条非 open 流水，重挂到新记录上。
+    await reattachHandler({ newFindingId: newId, projectId, findingType: f.finding_type, title });
   }
 
   return {

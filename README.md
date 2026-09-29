@@ -109,6 +109,7 @@ openresty -t && openresty -s reload
 - 资料舱：上传 + 解析（PaddleOCR-VL 管线）+ 原件查看（Excel / Word / OCR bbox 框线）
 - 智能问答：SSE 流式 + 证据溯源角标 / 抽屉 + Agent 取证工具（模型链故障转移）
 - 核对程序 + 疑点台账：确定性核对逻辑 + 规则扫描 + 处置 + 导出
+- 疑点处置留痕：`audit_finding_dispose` 记录每次状态变更的处理人，按「项目+类型+标题」归档（兼容疑点扫描重建新 ID）；详情面板展示最近处理人 + 完整变更历史；已处置疑点禁止删除
 - 后台 RBAC：用户 / 角色管理页 + 对应 API（幂等建表 + 种子数据）；菜单数据由 SQL 种子维护，仅提供只读接口供角色页分配权限
 - 模型配置：审计大脑模型链配置页 + `/api/audit/ai-config`（GET / PUT / test / reload，故障转移编排）
 - UI 原子组件库（Button / Card / Badge / Modal / Table / Input 等）
@@ -116,13 +117,13 @@ openresty -t && openresty -s reload
 **已知限制**
 1. 核对程序只实现了 2 种（清单↔结算、三方签章）；`contract_payment`（合同付款核对）与 `summary_tie`（汇总勾稽）在 `constants.ts` 中已声明枚举但无实现
 2. 疑点规则产出 6 类；`no_photo`（缺少影像资料）、`duplicate`（重复计量）已声明枚举但暂无规则生成
-3. 疑点台账无手工录入入口（`source='manual'` 不可达），`remark` 可编辑可保存，但状态变更历史无留痕表
+3. 疑点台账无手工录入入口（`source='manual'` 不可达）——状态变更已通过 `audit_finding_dispose` 留痕并展示处理人，但疑点本身仍不能手工创建
 4. 核对程序每次重跑会软删同类型历史记录（每种类型仅保留最近一次）
 5. 列表接口未分页：疑点全量返回、资料硬上限 500、核对项硬上限 2000
 6. 角色权限（`perm_key`）在 `sl_sys_menu` 中维护并可按角色分配，但审计域接口尚未按权限键校验；侧边栏菜单由前端硬编码，未读取 `/api/admin/menus/my`
 7. OCR 页面底图未本地化（`localImage` 恒空），`bbox` 坐标已入库但前端未渲染框线
 8. 头像字段（`avatar`）已在用户表预留，个人设置页暂未提供上传
-9. 项目成员变更无留痕表（谁在何时把谁加为/移出项目），成员管理页不展示操作历史
+9. 项目成员变更无留痕表（谁在何时把谁加为/移出项目），成员管理页不展示操作历史；疑点处置留痕已实现，成员变更尚未跟进
 
 **待完善**
 1. 外部 AI 集成**全链路联调**（需配置 MySQL + `ARK_API_KEY` + `OCR_KEY`）：`npm run build && npm run start` 后按自测指引冒烟（注册 → 建项目 → 上传 → 问答 → 核对 → 疑点）
