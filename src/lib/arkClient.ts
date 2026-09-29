@@ -27,6 +27,8 @@ interface ModelCfg {
   supportsVision?: boolean;
   freeQuota?: string;
   note?: string;
+  /** 用户自定义接入点（非内置模型）：地址与密钥由用户自己填，不与 env 做「冗余清空」比对 */
+  isCustom?: boolean;
 }
 interface ChainCfg {
   failoverEnabled: boolean;
@@ -80,8 +82,12 @@ function withEnv(cfg: any): ChainCfg {
     models: (Array.isArray(cfg.models) && cfg.models.length ? cfg.models : base.models).map((m: any) => ({
       ...m,
       timeoutMs: Number(m.timeoutMs) > 0 ? Number(m.timeoutMs) : baseByKey.get(m.key)?.timeoutMs || 0,
-      baseUrl: m.baseUrl || process.env.ARK_BASE_URL || DEFAULT_BASE_URL,
-      apiKey: m.apiKey || process.env.ARK_API_KEY || '',
+      // 自定义接入点缺省用 env 的地址/密钥会导致「配了却调不通」，这里保持空，
+      // 由调用方 callOnce 显式报错提示未配置，而不是静默走到方舟地址。
+      baseUrl: m.isCustom
+        ? (m.baseUrl || '')
+        : (m.baseUrl || process.env.ARK_BASE_URL || DEFAULT_BASE_URL),
+      apiKey: m.isCustom ? (m.apiKey || '') : (m.apiKey || process.env.ARK_API_KEY || ''),
       enabled: m.enabled !== false,
     })),
   };
@@ -119,8 +125,15 @@ export async function saveConfig(cfg: any, userId?: string): Promise<ChainCfg> {
         timeoutMs: Number(m.timeoutMs) > 0 ? Number(m.timeoutMs) : 0,
         supportsTools: !!m.supportsTools, supportsVision: !!m.supportsVision,
         freeQuota: m.freeQuota || '', note: m.note || '',
-        baseUrl: m.baseUrl && m.baseUrl !== defBase ? m.baseUrl : '',
-        apiKey: m.apiKey && m.apiKey !== process.env.ARK_API_KEY ? m.apiKey : '',
+        isCustom: !!m.isCustom,
+        // 自定义接入点不参与「与 env 比对」的清空语义：它的 baseUrl/apiKey
+        // 本来就是用户自己填的，必须原样保留，否则重连时会被当成冗余抹掉。
+        baseUrl: m.isCustom
+          ? (m.baseUrl || '')
+          : (m.baseUrl && m.baseUrl !== defBase ? m.baseUrl : ''),
+        apiKey: m.isCustom
+          ? (m.apiKey || '')
+          : (m.apiKey && m.apiKey !== process.env.ARK_API_KEY ? m.apiKey : ''),
       };
     }),
   };
@@ -220,7 +233,15 @@ function stripToolMarkup(text: string): string {
 export { stripToolMarkup };
 
 async function callOnce(model: ModelCfg, payload: any, timeoutMs: number, opts: { stream?: boolean; onDelta?: (delta: string, full: string) => void } = {}): Promise<any> {
-  if (!model.apiKey) throw new Error(`模型 ${model.model} 未配置 API Key（env ARK_API_KEY 也为空）`);
+  if (!model.apiKey) {
+    // 自定义接入点没有 env 可回退，报错要说清是它自己没配，别把用户引去查 ARK_API_KEY
+    throw new Error(
+      model.isCustom
+        ? `自定义模型「${model.label || model.model}」未配置 API Key`
+        : `模型 ${model.model} 未配置 API Key（env ARK_API_KEY 也为空）`
+    );
+  }
+  if (!model.baseUrl) throw new Error(`模型「${model.label || model.model}」未配置 Base URL`);
   const useStream = opts.stream === true;
   const controller = new AbortController();
   let timer: any = null;
@@ -432,12 +453,14 @@ export async function getPublicConfig(): Promise<any> {
       timeoutMs: m.timeoutMs || 0,
       inChain: chainKeys.includes(m.key),
       chainOrder: chainKeys.indexOf(m.key) + 1,
+      isCustom: !!m.isCustom,
       supportsTools: !!m.supportsTools, supportsVision: !!m.supportsVision,
       freeQuota: m.freeQuota || '', note: m.note || '',
-      hasCustomKey: !!m.apiKey && m.apiKey !== process.env.ARK_API_KEY,
-      usingEnvKey: !m.apiKey || m.apiKey === process.env.ARK_API_KEY,
+      // 自定义模型总是「自带密钥 + 自带地址」，与内置模型的 env 回退语义不同
+      hasCustomKey: m.isCustom ? !!m.apiKey : !!m.apiKey && m.apiKey !== process.env.ARK_API_KEY,
+      usingEnvKey: m.isCustom ? false : (!m.apiKey || m.apiKey === process.env.ARK_API_KEY),
       hasKey: !!m.apiKey,
-      hasCustomBaseUrl: !!m.baseUrl && m.baseUrl !== defBase,
+      hasCustomBaseUrl: m.isCustom ? !!m.baseUrl : !!m.baseUrl && m.baseUrl !== defBase,
     })),
     effectiveChain: chain.map((m, i) => ({
       order: i + 1, key: m.key, label: m.label, model: m.model, timeoutMs: m.timeoutMs || 0,

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/apiClient';
-import { Button, Card, Badge, Spinner } from '@/components/ui/primitives';
+import { Button, Card, Badge, Spinner, Modal, Input, Textarea } from '@/components/ui/primitives';
 
 type ModelCfg = {
   key: string;
@@ -17,11 +17,22 @@ type ModelCfg = {
   supportsVision: boolean;
   freeQuota: string;
   note: string;
+  isCustom?: boolean;
   hasCustomKey: boolean;
   usingEnvKey: boolean;
   hasKey: boolean;
   hasCustomBaseUrl: boolean;
 };
+
+type NewModelForm = {
+  label: string;
+  model: string;
+  baseUrl: string;
+  apiKey: string;
+  timeoutMs: number;
+  note: string;
+};
+const EMPTY_NEW: NewModelForm = { label: '', model: '', baseUrl: '', apiKey: '', timeoutMs: 600000, note: '' };
 type Config = {
   failoverEnabled: boolean;
   activeModel: string;
@@ -42,6 +53,56 @@ export default function AIModelConfigPage() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
+  const [addOpen, setAddOpen] = useState(false);
+  const [nf, setNf] = useState<NewModelForm>(EMPTY_NEW);
+
+  /** 生成稳定且不易与内置 key 冲突的标识 */
+  function newKeyOf(model: string): string {
+    const slug = String(model || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24);
+    return `custom-${slug || 'model'}`;
+  }
+
+  function openAdd() {
+    setNf(EMPTY_NEW);
+    setAddOpen(true);
+  }
+
+  function addCustomModel() {
+    if (!nf.model.trim()) { setMsg('请填写模型标识'); return; }
+    if (!nf.baseUrl.trim()) { setMsg('请填写 Base URL'); return; }
+    if (!nf.apiKey.trim()) { setMsg('请填写 API Key'); return; }
+    if (!/^https?:\/\//i.test(nf.baseUrl.trim())) { setMsg('Base URL 需以 http:// 或 https:// 开头'); return; }
+    if (!cfg) return;
+    // key 冲突时追加序号，避免静默覆盖既有模型
+    let key = newKeyOf(nf.model);
+    let n = 2;
+    while (cfg.models.some((m) => m.key === key)) { key = `${newKeyOf(nf.model)}-${n++}`; }
+    setCfg({
+      ...cfg,
+      models: [...cfg.models, {
+        key, label: nf.label.trim() || nf.model.trim(), model: nf.model.trim(),
+        role: 'backup', enabled: true, timeoutMs: nf.timeoutMs || 600000,
+        inChain: true, chainOrder: cfg.models.length + 1,
+        supportsTools: true, supportsVision: false,
+        freeQuota: '', note: nf.note.trim() || '用户自定义接入点',
+        isCustom: true,
+        hasCustomKey: true, usingEnvKey: false, hasKey: true, hasCustomBaseUrl: true,
+      }],
+    });
+    setDrafts((d) => ({ ...d, [key]: { apiKey: nf.apiKey.trim(), baseUrl: nf.baseUrl.trim(), keyDirty: true, baseDirty: true } }));
+    setAddOpen(false);
+    setMsg('已添加自定义模型，点「保存配置」生效');
+  }
+
+  function removeModel(m: ModelCfg) {
+    if (!cfg) return;
+    if (m.key === activeKey) { setMsg('主模型不能删除，请先把主模型切到其他模型'); return; }
+    if (!confirm(`确认删除模型「${m.label}」？`)) return;
+    const models = cfg.models.filter((x) => x.key !== m.key);
+    setCfg({ ...cfg, models });
+    setTestResults((rs) => rs.filter((r) => r.key !== m.key));
+    setMsg('已删除，点「保存配置」生效');
+  }
 
   const load = useCallback(async () => {
     try {
@@ -84,6 +145,8 @@ export default function AIModelConfigPage() {
           timeoutMs: m.timeoutMs || 0,
           note: m.note,
           freeQuota: m.freeQuota,
+          // 自定义模型必须带上 keyDirty/baseDirty：它的地址与密钥就是用户新填的，
+          // 漏传会被后端判为「沿用原值」而拿不到。
           ...(d.keyDirty ? { apiKey: d.apiKey } : {}),
           ...(d.baseDirty ? { baseUrl: d.baseUrl } : {}),
         };
@@ -132,6 +195,7 @@ export default function AIModelConfigPage() {
           <p className="text-sm text-text-muted">审计大脑模型链：设置主模型（链首）、启用/禁用与降级优先级、超时与自定义密钥。</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="secondary" onClick={openAdd}>+ 自定义模型</Button>
           <Button variant="secondary" onClick={test} disabled={testing}>{testing ? '测试中…' : '连通性测试'}</Button>
           <Button variant="secondary" onClick={reload}>清缓存重载</Button>
           <Button onClick={save} disabled={saving}>{saving ? '保存中…' : '保存配置'}</Button>
@@ -166,6 +230,7 @@ export default function AIModelConfigPage() {
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-text truncate">{m.label}</span>
                       {m.key === activeKey && <Badge color="danger">主模型</Badge>}
+                      {m.isCustom && <Badge color="success">自定义</Badge>}
                       {m.supportsTools && <Badge color="primary">工具</Badge>}
                       {m.supportsVision && <Badge color="primary">视觉</Badge>}
                     </div>
@@ -176,6 +241,9 @@ export default function AIModelConfigPage() {
                   <Button size="sm" variant="ghost" onClick={() => move(i, -1)} disabled={i === 0} title="上移（提升降级优先级）">↑</Button>
                   <Button size="sm" variant="ghost" onClick={() => move(i, 1)} disabled={i === cfg.models.length - 1} title="下移">↓</Button>
                   <Button size="sm" variant="secondary" onClick={() => setActiveKey(m.key)} disabled={!m.enabled} title="设为主模型">设为主</Button>
+                  {m.isCustom && (
+                    <Button size="sm" variant="ghost" className="text-danger" onClick={() => removeModel(m)} disabled={m.key === activeKey} title={m.key === activeKey ? '主模型不可删除' : '删除该自定义模型'}>删除</Button>
+                  )}
                 </div>
               </div>
 
@@ -221,6 +289,44 @@ export default function AIModelConfigPage() {
           ))}
         </Card>
       )}
+
+      {/* 新增自定义模型 */}
+      <Modal open={addOpen} title="新增自定义模型" onClose={() => setAddOpen(false)}
+        footer={<><Button variant="secondary" onClick={() => setAddOpen(false)}>取消</Button><Button onClick={addCustomModel}>添加</Button></>}>
+        <div className="space-y-3">
+          <p className="text-xs text-text-muted">
+            接入任意 OpenAI 兼容的 /chat/completions 服务（如自建推理、其他云厂商、本地部署）。
+            添加后点「保存配置」生效，建议再用「连通性测试」确认可用。
+          </p>
+          <div>
+            <label className="text-sm text-text-secondary">显示名称</label>
+            <Input value={nf.label} onChange={(e) => setNf({ ...nf, label: e.target.value })} placeholder="如 公司内部推理服务" />
+          </div>
+          <div>
+            <label className="text-sm text-text-secondary">模型标识 *</label>
+            <Input value={nf.model} onChange={(e) => setNf({ ...nf, model: e.target.value })} placeholder="如 qwen2.5-72b-instruct / gpt-4o" />
+            <p className="text-xs text-text-muted mt-1">服务端实际接受的 model 值，非显示名称。</p>
+          </div>
+          <div>
+            <label className="text-sm text-text-secondary">Base URL *</label>
+            <Input value={nf.baseUrl} onChange={(e) => setNf({ ...nf, baseUrl: e.target.value })} placeholder="如 https://ark.cn-beijing.volces.com/api/v3" />
+            <p className="text-xs text-text-muted mt-1">需含协议、不含结尾 /chat/completions；系统会自动拼接该路径。</p>
+          </div>
+          <div>
+            <label className="text-sm text-text-secondary">API Key *</label>
+            <Input type="password" value={nf.apiKey} onChange={(e) => setNf({ ...nf, apiKey: e.target.value })} placeholder="该接入点的密钥" />
+            <p className="text-xs text-text-muted mt-1">加密存储，保存后不再回显；留空可在模型卡片中清除。</p>
+          </div>
+          <div>
+            <label className="text-sm text-text-secondary">超时(ms)</label>
+            <Input type="number" value={nf.timeoutMs} onChange={(e) => setNf({ ...nf, timeoutMs: Number(e.target.value) })} />
+          </div>
+          <div>
+            <label className="text-sm text-text-secondary">备注</label>
+            <Textarea value={nf.note} onChange={(e) => setNf({ ...nf, note: e.target.value })} rows={2} placeholder="选填，说明用途" />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
