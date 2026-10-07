@@ -78,8 +78,8 @@ export default function ProjectsPage() {
     <div>
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-xl font-bold text-text">审计项目</h1>
-          <p className="text-sm text-text-muted mt-0.5">你参与的项目（归属人 + 复核人），点击卡片查看详情与成员</p>
+          <h1 className="text-lg font-semibold leading-tight tracking-tight text-text">审计项目</h1>
+          <p className="mt-1 text-sm leading-relaxed text-text-secondary">你参与的项目（归属人 + 复核人），点击卡片查看详情与成员</p>
         </div>
         <div className="flex gap-2">
           <Input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="搜索项目名称/编号" className="w-56" />

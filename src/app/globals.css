@@ -3,37 +3,73 @@
 @tailwind utilities;
 
 /* ============================================================
-   设计令牌（设计系统变量，统一明暗主题）
-   颜色以 "R G B" 形式声明，配合 Tailwind rgb(var(--x) / <alpha>) 使用
+   设计令牌 —— 审计智脑 v2
+   调性：权威 / 克制 / 精确。面向建设工程审计人员长时间读表、对金额的场景。
+   颜色以 "R G B" 声明，配合 Tailwind rgb(var(--x) / <alpha>) 使用
    ============================================================ */
 :root {
-  --c-primary: 14 165 233;       /* #0ea5e9 */
+  /* —— 品牌：藏青（政企 / 审计的权威感），铜金作证据与 AI 强调 —— */
+  --c-primary: 26 76 122;          /* #1A4C7A */
+  --c-primary-hover: 18 55 89;
   --c-primary-fg: 255 255 255;
-  --c-success: 16 185 129;       /* #10b981 */
-  --c-danger: 239 68 68;         /* #ef4444 */
-  --c-warning: 245 158 11;       /* #f59e0b */
-  --c-bg: 248 250 252;           /* #f8fafc */
-  --c-card: 255 255 255;
-  --c-border: 226 232 240;       /* #e2e8f0 */
-  --c-text: 30 41 59;            /* #1e293b */
-  --c-text-secondary: 71 85 105; /* #475569 */
-  --c-text-muted: 148 163 184;   /* #94a3b8 */
+  --c-accent: 154 107 47;          /* #9A6B2F 铜金 */
+  --c-accent-fg: 255 255 255;
+
+  /* —— 语义色：降饱和，避免互联网产品的荧光感 —— */
+  --c-success: 31 122 85;
+  --c-warning: 168 113 15;
+  --c-danger: 179 38 30;
+  --c-info: 26 76 122;
+
+  /* —— 中性面 —— */
+  --c-bg: 244 246 248;             /* 应用底 */
+  --c-card: 255 255 255;           /* 卡片 / 表格 / 弹层 */
+  --c-surface-2: 249 250 251;      /* 卡片内嵌区 / 表头 / 斑马纹 */
+  --c-border: 226 230 234;
+  --c-border-strong: 205 211 218;
+  --c-text: 22 32 43;              /* 近黑带蓝，比纯黑稳 */
+  --c-text-secondary: 75 87 101;
+  --c-text-muted: 122 135 148;
+
+  --ring: 26 76 122;
+
+  /* 阴影：极克制。深色下阴影几乎无效且会显脏，主要靠 border 分层 */
+  --shadow-card: 0 1px 2px rgba(16, 32, 48, 0.05);
+  --shadow-card-hover: 0 4px 14px rgba(16, 32, 48, 0.09), 0 1px 2px rgba(16, 32, 48, 0.05);
+  --shadow-pop: 0 14px 36px rgba(16, 32, 48, 0.16), 0 2px 8px rgba(16, 32, 48, 0.07);
 }
 
 .dark {
-  --c-primary: 56 189 248;
-  --c-primary-fg: 8 15 23;
-  --c-success: 52 211 153;
-  --c-danger: 248 113 113;
-  --c-warning: 251 191 36;
-  --c-bg: 15 23 42;              /* #0f172a */
-  --c-card: 30 41 59;            /* #1e293b */
-  --c-border: 51 65 85;          /* #334155 */
-  --c-text: 241 245 249;         /* #f1f5f9 */
-  --c-text-secondary: 148 163 184;
-  --c-text-muted: 100 116 139;
+  --c-primary: 110 166 216;
+  --c-primary-hover: 143 190 231;
+  --c-primary-fg: 8 14 21;
+  --c-accent: 211 168 104;
+  --c-accent-fg: 26 18 8;
+
+  --c-success: 77 185 140;
+  --c-warning: 224 169 75;
+  --c-danger: 240 138 128;
+  --c-info: 110 166 216;
+
+  --c-bg: 13 18 24;
+  --c-card: 21 27 35;
+  --c-surface-2: 27 34 44;
+  --c-border: 36 45 56;
+  --c-border-strong: 54 66 80;
+  --c-text: 230 234 239;
+  --c-text-secondary: 154 166 180;
+  --c-text-muted: 108 121 135;
+
+  --ring: 110 166 216;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 6px 18px rgba(0, 0, 0, 0.45);
+  --shadow-pop: 0 18px 44px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
+/* ============================================================
+   基础排版
+   ============================================================ */
 html,
 body {
   padding: 0;
@@ -44,35 +80,141 @@ body {
 body {
   background-color: rgb(var(--c-bg));
   color: rgb(var(--c-text));
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 * {
   box-sizing: border-box;
 }
 
-/* 滚动条美化 */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-thumb {
-  background: rgb(var(--c-text-muted) / 0.4);
-  border-radius: 4px;
+/* 统一焦点环：键盘可达但不喧宾夺主 */
+:focus-visible {
+  outline: 2px solid rgb(var(--ring) / 0.55);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
-/* Markdown 渲染基础样式 */
-.markdown-body h1 { font-size: 1.4rem; font-weight: 700; margin: 0.8em 0 0.4em; }
-.markdown-body h2 { font-size: 1.2rem; font-weight: 700; margin: 0.8em 0 0.4em; }
-.markdown-body h3 { font-size: 1.05rem; font-weight: 600; margin: 0.6em 0 0.3em; }
-.markdown-body p { margin: 0.5em 0; line-height: 1.7; }
-.markdown-body ul, .markdown-body ol { padding-left: 1.4em; margin: 0.5em 0; }
+::selection {
+  background: rgb(var(--c-primary) / 0.18);
+}
+
+/* 滚动条：细、无轨道，深色下更收敛 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--c-text-muted) / 0.32);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--c-text-muted) / 0.5);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ============================================================
+   工具类
+   ============================================================ */
+
+/* 等宽数字 —— 金额、工程量、编号必须能竖着扫，这是审计场景的硬要求 */
+.num,
+th.num,
+td.num,
+.tabular {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+
+/* 小标签 / 眉标：表格列名、卡片字段名 */
+.eyebrow {
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgb(var(--c-text-muted));
+}
+
+/* 分区标题 */
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgb(var(--c-text-secondary));
+}
+
+/* 细分割线（比 border 更轻，用于卡片内分区） */
+.hairline {
+  height: 1px;
+  background: rgb(var(--c-border));
+}
+
+/* ============================================================
+   Markdown 正文（@tailwindcss/typography）
+   prose 默认走 gray 色阶，深色下会读不清；这里统一收到本站令牌上
+   ============================================================ */
+.prose,
+.dark .prose {
+  --tw-prose-body: rgb(var(--c-text-secondary));
+  --tw-prose-headings: rgb(var(--c-text));
+  --tw-prose-lead: rgb(var(--c-text-secondary));
+  --tw-prose-links: rgb(var(--c-primary));
+  --tw-prose-bold: rgb(var(--c-text));
+  --tw-prose-counters: rgb(var(--c-text-muted));
+  --tw-prose-bullets: rgb(var(--c-border-strong));
+  --tw-prose-hr: rgb(var(--c-border));
+  --tw-prose-quotes: rgb(var(--c-text-secondary));
+  --tw-prose-quote-borders: rgb(var(--c-accent));
+  --tw-prose-captions: rgb(var(--c-text-muted));
+  --tw-prose-code: rgb(var(--c-text));
+  --tw-prose-pre-code: rgb(var(--c-text-secondary));
+  --tw-prose-pre-bg: rgb(var(--c-surface-2));
+  --tw-prose-th-borders: rgb(var(--c-border));
+  --tw-prose-td-borders: rgb(var(--c-border));
+}
+.prose :where(code):not(:where(pre *)) {
+  background: rgb(var(--c-surface-2));
+  border: 1px solid rgb(var(--c-border));
+  padding: 1px 5px;
+  border-radius: 5px;
+  font-weight: 400;
+}
+.prose :where(pre) {
+  border: 1px solid rgb(var(--c-border));
+}
+.prose :where(blockquote) {
+  border-left-width: 2px;
+  font-style: normal;
+}
+
+/* Markdown 渲染 */
+.markdown-body {
+  font-size: 14px;
+  line-height: 1.75;
+  color: rgb(var(--c-text));
+}
+.markdown-body h1 { font-size: 1.25rem; font-weight: 600; margin: 1em 0 0.5em; letter-spacing: -0.01em; }
+.markdown-body h2 { font-size: 1.1rem; font-weight: 600; margin: 1em 0 0.45em; }
+.markdown-body h3 { font-size: 1rem; font-weight: 600; margin: 0.9em 0 0.4em; }
+.markdown-body p { margin: 0.55em 0; }
+.markdown-body ul, .markdown-body ol { padding-left: 1.35em; margin: 0.5em 0; }
 .markdown-body li { margin: 0.25em 0; }
-.markdown-body table { border-collapse: collapse; width: 100%; margin: 0.6em 0; font-size: 0.9rem; }
+.markdown-body table { border-collapse: collapse; width: 100%; margin: 0.7em 0; font-size: 13px; }
 .markdown-body th, .markdown-body td { border: 1px solid rgb(var(--c-border)); padding: 6px 10px; text-align: left; }
-.markdown-body th { background: rgb(var(--c-bg)); font-weight: 600; }
-.markdown-body code { background: rgb(var(--c-text-muted) / 0.18); padding: 1px 5px; border-radius: 4px; font-size: 0.88em; }
-.markdown-body pre { background: rgb(var(--c-bg)); padding: 12px; border-radius: 8px; overflow-x: auto; margin: 0.6em 0; }
-.markdown-body pre code { background: transparent; padding: 0; }
-.markdown-body blockquote { border-left: 3px solid rgb(var(--c-primary)); padding-left: 12px; color: rgb(var(--c-text-secondary)); margin: 0.6em 0; }
+.markdown-body th { background: rgb(var(--c-surface-2)); font-weight: 600; }
+.markdown-body code { background: rgb(var(--c-surface-2)); border: 1px solid rgb(var(--c-border)); padding: 1px 5px; border-radius: 5px; font-size: 0.88em; }
+.markdown-body pre { background: rgb(var(--c-surface-2)); border: 1px solid rgb(var(--c-border)); padding: 12px 14px; border-radius: 8px; overflow-x: auto; margin: 0.7em 0; }
+.markdown-body pre code { background: transparent; border: 0; padding: 0; }
+.markdown-body blockquote { border-left: 2px solid rgb(var(--c-accent)); padding-left: 12px; color: rgb(var(--c-text-secondary)); margin: 0.7em 0; }
+.markdown-body a { color: rgb(var(--c-primary)); text-underline-offset: 2px; }

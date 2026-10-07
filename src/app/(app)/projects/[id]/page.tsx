@@ -144,7 +144,7 @@ export default function ProjectDetailPage() {
       <div className="flex items-start justify-between mb-5 gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-bold text-text truncate">{proj.project_name}</h1>
+            <h1 className="text-lg font-semibold leading-tight tracking-tight text-text truncate">{proj.project_name}</h1>
             <Badge color={proj.status === 1 ? 'success' : 'primary'}>
               {PROJECT_STATUS.find((s) => s.value === proj.status)?.label}
             </Badge>

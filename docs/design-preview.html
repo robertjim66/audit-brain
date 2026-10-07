@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>审计智脑 · 界面设计系统 v2</title>
+<style>
+/* ============ 设计令牌 ============ */
+:root{
+  --c-primary:26 76 122; --c-primary-hover:18 55 89; --c-primary-fg:255 255 255;
+  --c-accent:154 107 47; --c-accent-fg:255 255 255;
+  --c-success:31 122 85; --c-warning:168 113 15; --c-danger:179 38 30; --c-info:26 76 122;
+  --c-bg:244 246 248; --c-card:255 255 255; --c-surface-2:249 250 251;
+  --c-border:226 230 234; --c-border-strong:205 211 218;
+  --c-text:22 32 43; --c-text-secondary:75 87 101; --c-text-muted:122 135 148;
+  --shadow-card:0 1px 2px rgba(16,32,48,.05);
+  --shadow-card-hover:0 4px 14px rgba(16,32,48,.09),0 1px 2px rgba(16,32,48,.05);
+  --shadow-pop:0 14px 36px rgba(16,32,48,.16),0 2px 8px rgba(16,32,48,.07);
+  --ring:26 76 122;
+}
+.dark{
+  --c-primary:110 166 216; --c-primary-hover:143 190 231; --c-primary-fg:8 14 21;
+  --c-accent:211 168 104; --c-accent-fg:26 18 8;
+  --c-success:77 185 140; --c-warning:224 169 75; --c-danger:240 138 128; --c-info:110 166 216;
+  --c-bg:13 18 24; --c-card:21 27 35; --c-surface-2:27 34 44;
+  --c-border:36 45 56; --c-border-strong:54 66 80;
+  --c-text:230 234 239; --c-text-secondary:154 166 180; --c-text-muted:108 121 135;
+  --shadow-card:0 1px 2px rgba(0,0,0,.4);
+  --shadow-card-hover:0 6px 18px rgba(0,0,0,.45);
+  --shadow-pop:0 18px 44px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.3);
+  --ring:110 166 216;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:rgb(var(--c-bg)); color:rgb(var(--c-text));
+  font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  font-size:14px; line-height:1.65; -webkit-font-smoothing:antialiased;
+}
+.num{font-variant-numeric:tabular-nums lining-nums; font-feature-settings:'tnum' 1,'lnum' 1}
+.eyebrow{font-size:12px; font-weight:500; letter-spacing:.02em; color:rgb(var(--c-text-muted))}
+.ic{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* ============ 页面框架 ============ */
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 80px}
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:14px 24px;border-bottom:1px solid rgb(var(--c-border));background:rgb(var(--c-card)/.85);backdrop-filter:blur(12px)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{display:flex;width:32px;height:32px;align-items:center;justify-content:center;border-radius:8px;background:rgb(var(--c-primary));color:rgb(var(--c-primary-fg));box-shadow:var(--shadow-card)}
+.brand-name{font-size:13px;font-weight:600;line-height:1.2}
+.brand-sub{font-size:11px;letter-spacing:.08em;color:rgb(var(--c-text-muted))}
+h1.lead{font-size:26px;font-weight:600;letter-spacing:-.02em;margin:44px 0 8px;line-height:1.3}
+p.lead-sub{margin:0;color:rgb(var(--c-text-secondary));max-width:760px;font-size:14px}
+.sec{margin-top:56px}
+.sec-h{display:flex;align-items:baseline;gap:10px;margin:0 0 4px}
+.sec-n{font-size:12px;font-weight:600;color:rgb(var(--c-primary));letter-spacing:.06em}
+.sec-t{font-size:17px;font-weight:600;letter-spacing:-.01em;margin:0}
+.sec-d{margin:6px 0 20px;color:rgb(var(--c-text-secondary));font-size:13px;max-width:800px}
+
+/* ============ 通用块 ============ */
+.panel{background:rgb(var(--c-card));border:1px solid rgb(var(--c-border));border-radius:10px;box-shadow:var(--shadow-card)}
+.panel-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid rgb(var(--c-border))}
+.panel-t{font-size:13px;font-weight:600}
+.panel-d{font-size:12px;color:rgb(var(--c-text-muted));margin-top:2px}
+.panel-b{padding:16px}
+
+/* 色板 */
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.sw{border:1px solid rgb(var(--c-border));border-radius:10px;overflow:hidden;background:rgb(var(--c-card))}
+.sw-c{height:56px}
+.sw-m{padding:8px 10px}
+.sw-n{font-size:12px;font-weight:600}
+.sw-v{font-size:11px;color:rgb(var(--c-text-muted));font-variant-numeric:tabular-nums}
+
+/* 排版阶梯 */
+.type-row{display:flex;align-items:baseline;gap:16px;padding:10px 0;border-bottom:1px solid rgb(var(--c-border))}
+.type-row:last-child{border-bottom:0}
+.type-tag{width:110px;flex:none;font-size:11px;color:rgb(var(--c-text-muted))}
+
+/* 组件演示 */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:880px){.grid2{grid-template-columns:1fr}}
+.stack{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;font-size:13px;font-weight:500;padding:7px 14px;
+  border:1px solid transparent;transition:all .15s cubic-bezier(.22,.61,.36,1);cursor:default}
+.btn-p{background:rgb(var(--c-primary));color:rgb(var(--c-primary-fg));box-shadow:var(--shadow-card)}
+.btn-a{background:rgb(var(--c-accent));color:rgb(var(--c-accent-fg));box-shadow:var(--shadow-card)}
+.btn-s{background:rgb(var(--c-card));color:rgb(var(--c-text));border-color:rgb(var(--c-border))}
+.btn-d{background:rgb(var(--c-danger));color:#fff;box-shadow:var(--shadow-card)}
+.btn-g{color:rgb(var(--c-text-secondary));background:transparent}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:6px;border:1px solid;padding:1px 8px;font-size:12px;font-weight:500;line-height:20px}
+.dot{width:6px;height:6px;border-radius:50%;flex:none}
+.b-p{background:rgb(var(--c-primary)/.10);color:rgb(var(--c-primary));border-color:rgb(var(--c-primary)/.20)}
+.b-s{background:rgb(var(--c-success)/.10);color:rgb(var(--c-success));border-color:rgb(var(--c-success)/.20)}
+.b-d{background:rgb(var(--c-danger)/.10);color:rgb(var(--c-danger));border-color:rgb(var(--c-danger)/.20)}
+.b-w{background:rgb(var(--c-warning)/.10);color:rgb(var(--c-warning));border-color:rgb(var(--c-warning)/.20)}
+.b-m{background:rgb(var(--c-text-muted)/.10);color:rgb(var(--c-text-secondary));border-color:rgb(var(--c-text-muted)/.20)}
+.b-a{background:rgb(var(--c-accent)/.10);color:rgb(var(--c-accent));border-color:rgb(var(--c-accent)/.20)}
+
+.stat{position:relative;background:rgb(var(--c-card));border:1px solid rgb(var(--c-border));border-radius:10px;box-shadow:var(--shadow-card);overflow:hidden}
+.stat-bar{position:absolute;left:0;top:0;height:100%;width:3px}
+.stat-b{padding:14px 16px}
+.stat-v{font-size:26px;font-weight:600;line-height:1;letter-spacing:-.02em;margin-top:6px}
+.stat-h{margin-top:8px;font-size:12px;color:rgb(var(--c-text-muted))}
+
+.seg{display:inline-flex;gap:2px;padding:2px;border:1px solid rgb(var(--c-border));background:rgb(var(--c-surface-2));border-radius:8px}
+.seg button{border:1px solid transparent;background:transparent;color:rgb(var(--c-text-secondary));font-size:13px;font-weight:500;padding:4px 12px;border-radius:6px}
+.seg button.on{background:rgb(var(--c-card));color:rgb(var(--c-text));border-color:rgb(var(--c-border));box-shadow:var(--shadow-card)}
+.field{width:100%;border:1px solid rgb(var(--c-border));background:rgb(var(--c-card));border-radius:8px;padding:7px 12px;font-size:13px;color:rgb(var(--c-text));outline:none}
+.field:focus{border-color:rgb(var(--c-primary));box-shadow:0 0 0 2px rgb(var(--c-primary)/.15)}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:rgb(var(--c-surface-2));color:rgb(var(--c-text-secondary));font-size:12px;font-weight:500;
+  padding:10px 14px;text-align:left;border-bottom:1px solid rgb(var(--c-border));white-space:nowrap}
+tbody td{padding:10px 14px;border-bottom:1px solid rgb(var(--c-border)/.7)}
+tbody tr:nth-child(even){background:rgb(var(--c-surface-2)/.4)}
+tbody tr:hover{background:rgb(var(--c-surface-2)/.7)}
+.ta-r{text-align:right}
+
+/* ============ 应用外壳 mock ============ */
+.app{display:flex;height:520px;border:1px solid rgb(var(--c-border));border-radius:12px;overflow:hidden;background:rgb(var(--c-bg));box-shadow:var(--shadow-pop)}
+.app-side{width:228px;flex:none;background:rgb(var(--c-card));border-right:1px solid rgb(var(--c-border));display:flex;flex-direction:column}
+.app-brand{height:56px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid rgb(var(--c-border))}
+.app-nav{flex:1;overflow-y:auto;padding:12px 0}
+.app-group{padding:0 0 6px}
+.app-gt{padding:0 16px 6px;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:rgb(var(--c-text-muted))}
+.app-item{position:relative;display:flex;align-items:center;gap:10px;margin:0 8px;padding:8px 10px;border-radius:8px;font-size:13px;color:rgb(var(--c-text-secondary))}
+.app-item.on{background:rgb(var(--c-primary)/.08);color:rgb(var(--c-primary));font-weight:500}
+.app-item.on:before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:2.5px;height:16px;border-radius:0 2px 2px 0;background:rgb(var(--c-primary))}
+.app-side-foot{margin:8px;padding:6px 0;border:1px solid rgb(var(--c-border));border-radius:8px;font-size:12px;color:rgb(var(--c-text-muted));text-align:center}
+.app-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.app-head{height:56px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 20px;border-bottom:1px solid rgb(var(--c-border));background:rgb(var(--c-card)/.85)}
+.app-body{flex:1;overflow-y:auto;padding:20px 24px}
+.projsw{display:flex;align-items:center;gap:8px;border:1px solid rgb(var(--c-border));background:rgb(var(--c-surface-2));border-radius:8px;padding:6px 10px;font-size:13px;max-width:320px}
+.avatar{width:28px;height:28px;border-radius:50%;background:rgb(var(--c-primary)/.10);color:rgb(var(--c-primary));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.iconbtn{display:flex;padding:8px;border-radius:8px;color:rgb(var(--c-text-muted))}
+
+/* 驾驶舱行 */
+.prow{display:flex;align-items:center;gap:16px;padding:12px 16px;border-bottom:1px solid rgb(var(--c-border))}
+.prow:last-child{border-bottom:0}
+.pbar{height:4px;flex:1;min-width:60px;border-radius:999px;background:rgb(var(--c-border));overflow:hidden}
+.pbar>i{display:block;height:100%;border-radius:999px}
+.summary{display:flex;flex-wrap:wrap;border:1px solid rgb(var(--c-border));border-radius:10px;background:rgb(var(--c-card));box-shadow:var(--c-shadow-card);overflow:hidden}
+.summary>div{flex:1;min-width:92px;padding:10px 16px;border-left:1px solid rgb(var(--c-border))}
+.summary>div:first-child{border-left:0}
+
+/* 时间线 */
+.tl{position:relative;margin-left:4px;border-left:1px solid rgb(var(--c-border));padding-left:16px}
+.tl li{position:relative;padding-bottom:14px;list-style:none}
+.tl li:last-child{padding-bottom:0}
+.tl li:before{content:'';position:absolute;left:-21px;top:5px;width:7px;height:7px;border-radius:50%;box-shadow:0 0 0 2px rgb(var(--c-card))}
+.note{background:rgb(var(--c-surface-2));border-radius:6px;padding:4px 8px;font-size:12px;margin-top:4px;color:rgb(var(--c-text-secondary))}
+
+/* 改造清单 */
+.chg{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:880px){.chg{grid-template-columns:1fr}}
+.chg-item{border:1px solid rgb(var(--c-border));border-radius:10px;background:rgb(var(--c-card));padding:16px}
+.chg-t{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;margin-bottom:6px}
+.chg-d{font-size:13px;color:rgb(var(--c-text-secondary));line-height:1.7}
+.tag{display:inline-flex;align-items:center;border:1px solid rgb(var(--c-border));background:rgb(var(--c-surface-2));border-radius:6px;padding:1px 6px;font-size:11px;color:rgb(var(--c-text-muted))}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:880px){.ba{grid-template-columns:1fr}}
+.ba-col{border:1px solid rgb(var(--c-border));border-radius:10px;overflow:hidden;background:rgb(var(--c-card))}
+.ba-h{padding:10px 16px;border-bottom:1px solid rgb(var(--c-border));font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px}
+.ba-old .ba-h{color:rgb(var(--c-danger))}
+.ba-new .ba-h{color:rgb(var(--c-success))}
+.ba-b{padding:12px 16px}
+/* 旧版示意用色（刻意还原改造前） */
+.old-side{background:#fff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden}
+.old-side .ob{height:48px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid #e2e8f0}
+.old-side .oi{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:14px;color:#475569}
+.old-side .oi.on{background:rgba(14,165,233,.10);color:#0ea5e9;font-weight:500;border-radius:8px;margin:0 8px}
+.old-emoji{font-size:18px;width:20px;text-align:center}
+footer{margin-top:64px;padding-top:20px;border-top:1px solid rgb(var(--c-border));font-size:12px;color:rgb(var(--c-text-muted))}
+</style>
+</head>
+<body>
+
+<!-- 图标 symbol -->
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-cockpit" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-checks" viewBox="0 0 24 24"><path d="m9 11 3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M9 2v2M15 20v2M9 20v2M2 15h2M2 9h2M20 15h2M20 9h2"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></symbol>
+  <symbol id="i-cog" viewBox="0 0 24 24"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3"/><path d="M14 2v4M8 10v4M16 18v4"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M3 12h18"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-arrow-r" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-trend-d" viewBox="0 0 24 24"><path d="m22 17-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4M19 17v4M3 5h4M17 19h4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+</svg>
+
+<!-- ============ 顶栏 ============ -->
+<div class="topbar">
+  <div class="brand">
+    <span class="brand-mark"><svg class="ic"><use href="#i-shield"/></svg></span>
+    <span>
+      <span class="brand-name">审计智脑 · 界面设计系统</span><br>
+      <span class="brand-sub">DESIGN SYSTEM v2</span>
+    </span>
+  </div>
+  <button class="btn btn-s" onclick="document.documentElement.classList.toggle('dark')" style="cursor:pointer">
+    <svg class="ic"><use href="#i-moon"/></svg>
+    切换深浅色
+  </button>
+</div>
+
+<div class="wrap">
+  <h1 class="lead">给建设工程审计人员的专业工具，不该长成一个 Bootstrap 后台</h1>
+  <p class="lead-sub">
+    本次改版的目标不是「更好看」，而是「更可信」。面向的人群每天要盯几百页结算书、逐条核对金额、
+    为每一条结论负责 —— 界面必须传递权威、克制、精确，并且让数字能竖着扫。
+  </p>
+
+  <!-- ============ 1 改了什么 ============ -->
+  <div class="sec">
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">改了什么，为什么</h2></div>
+    <p class="sec-d">五处关键改动，每一处都对应一个具体的信任问题，而不是审美偏好。</p>
+    <div class="chg">
+      <div class="chg-item">
+        <div class="chg-t"><svg class="ic" style="color:rgb(var(--c-primary))"><use href="#i-close"/></svg>去掉全部 emoji 图标</div>
+        <p class="chg-d">导航用 🧭📁⚠️🤖、品牌位是 🔍 —— 这是最致命的一条。审计是出具结论的工作，
+          emoji 会让它看起来像个周末做的个人项目。全部换成 1.6px 线性图标，24 网格、统一视觉重量。</p>
+      </div>
+      <div class="chg-item">
+        <div class="chg-t"><svg class="ic" style="color:rgb(var(--c-primary))"><use href="#i-shield"/></svg>换掉「Bootstrap 蓝」</div>
+        <p class="chg-d">原来的主色 #0ea5e9 是 Tailwind 默认色，任何人都见过。改成<strong>藏青 #1A4C7A</strong>
+          —— 政企与审计语境里的权威色，配<strong>铜金</strong>作证据与 AI 强调色。语义色全部降饱和，去掉荧光感。</p>
+      </div>
+      <div class="chg-item">
+        <div class="chg-t"><span class="num" style="color:rgb(var(--c-primary));font-weight:600;font-size:15px">1 2 3</span>金额全部等宽数字</div>
+        <p class="chg-d">审计台面 90% 的信息是数字。默认字体下数字宽度不等，一列金额会歪成锯齿，
+          根本没法竖着扫。所有金额、工程量、编号统一启用 <code>tabular-nums</code>。</p>
+      </div>
+      <div class="chg-item">
+        <div class="chg-t"><svg class="ic" style="color:rgb(var(--c-primary))"><use href="#i-cockpit"/></svg>指标卡数字不再染色</div>
+        <p class="chg-d">原来四个大数字分别是蓝、黄、绿、红 —— 这是仪表盘的廉价感来源。
+          现在数字统一用主文本色，语义色只出现在左侧 3px 细条上，视线先落在数字，颜色只是辅助。</p>
+      </div>
+      <div class="chg-item">
+        <div class="chg-t"><svg class="ic" style="color:rgb(var(--c-primary))"><use href="#i-checks"/></svg>统一两套视觉体系</div>
+        <p class="chg-d">项目里原本并存两套颜色：<code>primitives</code> 走设计令牌，但疑点台账、资料舱、
+          智能问答直接硬编码了 155 处 slate / sky / rose。已全部收编到令牌，深浅色自动一致。</p>
+      </div>
+      <div class="chg-item">
+        <div class="chg-t"><svg class="ic" style="color:rgb(var(--c-primary))"><use href="#i-check"/></svg>补上专业界面该有的细节</div>
+        <p class="chg-d">表头吸顶 + 极浅斑马纹（长表格逐行扫读必需）、原生 select 换成自定义下拉、
+          处置历史改成时间线（契合「留痕」语义）、圆角从 12px 收到 10px（更小的圆角更严肃）。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 2 对比 ============ -->
+  <div class="sec">
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">侧边栏：改造前 / 后</h2></div>
+    <p class="sec-d">同一个导航，左边是改造前，右边是改造后。</p>
+    <div class="ba">
+      <div class="ba-col ba-old">
+        <div class="ba-h"><svg class="ic"><use href="#i-close"/></svg>改造前</div>
+        <div class="ba-b">
+          <div class="old-side">
+            <div class="ob"><span style="display:flex;width:32px;height:32px;align-items:center;justify-content:center;border-radius:8px;background:#0ea5e9;color:#fff;font-size:18px">🔍</span><span style="font-weight:600;font-size:14px;color:#1e293b">审计智脑</span></div>
+            <div style="padding:8px 0">
+              <div class="oi on"><span class="old-emoji">🧭</span>审计驾驶舱</div>
+              <div class="oi"><span class="old-emoji">📁</span>审计项目</div>
+              <div class="oi"><span class="old-emoji">📄</span>资料舱</div>
+              <div class="oi"><span class="old-emoji">⚠️</span>疑点台账</div>
+              <div class="oi"><span class="old-emoji">🤖</span>模型配置</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ba-col ba-new">
+        <div class="ba-h"><svg class="ic"><use href="#i-check"/></svg>改造后</div>
+        <div class="ba-b">
+          <div style="border:1px solid rgb(var(--c-border));border-radius:8px;overflow:hidden;background:rgb(var(--c-card))">
+            <div style="height:48px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid rgb(var(--c-border))">
+              <span style="display:flex;width:32px;height:32px;align-items:center;justify-content:center;border-radius:8px;background:rgb(var(--c-primary));color:rgb(var(--c-primary-fg))"><svg class="ic"><use href="#i-shield"/></svg></span>
+              <span><span style="display:block;font-size:13px;font-weight:600;line-height:1.2">审计智脑</span><span style="display:block;font-size:11px;letter-spacing:.08em;color:rgb(var(--c-text-muted))">AUDITBRAIN</span></span>
+            </div>
+            <div style="padding:8px 0">
+              <div style="padding:0 16px 6px;font-size:11px;font-weight:500;letter-spacing:.08em;color:rgb(var(--c-text-muted))">审计作业</div>
+              <div class="app-item on"><svg class="ic"><use href="#i-cockpit"/></svg>审计驾驶舱</div>
+              <div class="app-item"><svg class="ic"><use href="#i-folder"/></svg>审计项目</div>
+              <div class="app-item"><svg class="ic"><use href="#i-file"/></svg>资料舱</div>
+              <div class="app-item"><svg class="ic"><use href="#i-warn"/></svg>疑点台账</div>
+              <div style="padding:12px 16px 6px;font-size:11px;font-weight:500;letter-spacing:.08em;color:rgb(var(--c-text-muted))">系统管理</div>
+              <div class="app-item"><svg class="ic"><use href="#i-cpu"/></svg>模型配置</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 3 配色 ============ -->
+  <div class="sec">
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">配色令牌</h2></div>
+    <p class="sec-d">藏青主色负责权威，铜金只用于「证据 / AI / 建议」这类需要被单独看见的语义，语义色全部降饱和。</p>
+    <div class="swatches">
+      <div class="sw"><div class="sw-c" style="background:rgb(var(--c-primary))"></div><div class="sw-m"><div class="sw-n">Primary 藏青</div><div class="sw-v">#1A4C7A · 主色 / 品牌</div></div></div>
+      <div class="sw"><div class="sw-c" style="background:rgb(var(--c-accent))"></div><div class="sw-m"><div class="sw-n">Accent 铜金</div><div class="sw-v">#9A6B2F · 证据 / 建议</div></div></div>
+      <div class="sw"><div class="sw-c" style="background:rgb(var(--c-danger))"></div><div class="sw-m"><div class="sw-n">Danger</div><div class="sw-v">高风险 / 核增 / 已确认</div></div></div>
+      <div class="sw"><div class="sw-c" style="background:rgb(var(--c-warning))"></div><div class="sw-m"><div class="sw-n">Warning</div><div class="sw-v">中风险 / 待核实</div></div></div>
+      <div class="sw"><div class="sw-c" style="background:rgb(var(--c-success))"></div><div class="sw-m"><div class="sw-n">Success</div><div class="sw-v">一致 / 已关闭 / 核减</div></div></div>
+      <div class="sw"><div class="sw-c" style="background:rgb(var(--c-bg));border-bottom:1px solid rgb(var(--c-border))"></div><div class="sw-m"><div class="sw-n">Bg 应用底</div><div class="sw-v">#F4F6F8 · 中性冷灰</div></div></div>
+      <div class="sw"><div class="sw-c" style="background:rgb(var(--c-surface-2));border-bottom:1px solid rgb(var(--c-border))"></div><div class="sw-m"><div class="sw-n">Surface-2</div><div class="sw-v">表头 / 斑马纹 / 内嵌区</div></div></div>
+      <div class="sw"><div class="sw-c" style="background:rgb(var(--c-text))"></div><div class="sw-m"><div class="sw-n">Text</div><div class="sw-v">#16202B · 近黑带蓝</div></div></div>
+    </div>
+  </div>
+
+  <!-- ============ 4 排版 ============ -->
+  <div class="sec">
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">排版阶梯</h2></div>
+    <p class="sec-d">字号整体收紧一档：正文 14、辅助 13、表格列名 12、微标 11。专业系统的信息密度应该更高，而不是更大。</p>
+    <div class="panel panel-b">
+      <div class="type-row"><span class="type-tag">页面标题 18/600</span><span style="font-size:18px;font-weight:600;letter-spacing:-.01em">疑点台账</span></div>
+      <div class="type-row"><span class="type-tag">分区标题 13/600</span><span style="font-size:13px;font-weight:600">进行中的项目</span></div>
+      <div class="type-row"><span class="type-tag">正文 14/1.65</span><span style="font-size:14px">系统只指出可疑之处与证据位置，是否构成问题由你判断。</span></div>
+      <div class="type-row"><span class="type-tag">表格 / 按钮 13</span><span style="font-size:13px">结算综合单价高于中标清单</span></div>
+      <div class="type-row"><span class="type-tag">列名 / 说明 12</span><span style="font-size:12px;color:rgb(var(--c-text-muted))">资料解析进度与疑点数量</span></div>
+      <div class="type-row"><span class="type-tag">微标 11</span><span style="font-size:11px;letter-spacing:.06em;color:rgb(var(--c-text-muted))">AUDITBRAIN · 审计作业</span></div>
+      <div class="type-row"><span class="type-tag">等宽数字</span><span class="num" style="font-size:14px">¥1,286,400.00 · ¥98,250.00 · ¥36.50</span></div>
+    </div>
+  </div>
+
+  <!-- ============ 5 组件 ============ -->
+  <div class="sec">
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">组件</h2></div>
+    <p class="sec-d">按钮、徽章、指标卡、分段控件、表单、表格 —— 全部走同一套令牌，深浅色自动适配。</p>
+    <div class="grid2">
+      <div class="panel">
+        <div class="panel-h"><div><div class="panel-t">按钮</div><div class="panel-d">圆角 8px，无渐变，点击有 1px 下沉</div></div></div>
+        <div class="panel-b">
+          <div class="stack">
+            <span class="btn btn-p"><svg class="ic" style="width:14px;height:14px"><use href="#i-play"/></svg>运行疑点扫描</span>
+            <span class="btn btn-s">导出台账</span>
+            <span class="btn btn-g">取消</span>
+            <span class="btn btn-d">删除</span>
+            <span class="btn btn-a">证据定位</span>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><div><div class="panel-t">徽章</div><div class="panel-d">方角 + 同色细描边，接近「印章 / 标签」语义</div></div></div>
+        <div class="panel-b">
+          <div class="stack">
+            <span class="badge b-d"><i class="dot" style="background:rgb(var(--c-danger))"></i>高风险</span>
+            <span class="badge b-w"><i class="dot" style="background:rgb(var(--c-warning))"></i>中风险</span>
+            <span class="badge b-m"><i class="dot" style="background:rgb(var(--c-text-muted))"></i>低风险</span>
+            <span class="badge b-p">待处理</span>
+            <span class="badge b-s">已关闭</span>
+            <span class="badge b-a">审计建议</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:16px">
+      <div class="panel">
+        <div class="panel-h"><div><div class="panel-t">分段控件</div><div class="panel-d">取代原生 select，筛选态一眼可见</div></div></div>
+        <div class="panel-b">
+          <div class="stack">
+            <span class="seg"><button class="on">全部</button><button>高</button><button>中</button><button>低</button></span>
+            <span class="seg"><button>全部</button><button class="on">待处理</button><button>已确认</button><button>误报</button><button>已关闭</button></span>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><div><div class="panel-t">表单</div><div class="panel-d">标签在上，聚焦时主色描边 + 2px 光环</div></div></div>
+        <div class="panel-b">
+          <div style="margin-bottom:12px"><div class="eyebrow" style="margin-bottom:6px">处置备注 <span style="color:rgb(var(--c-danger))">*</span></div><input class="field" value="已与施工单位核对，属实" readonly></div>
+          <div><div class="eyebrow" style="margin-bottom:6px">审计类型</div><input class="field" style="color:rgb(var(--c-text-muted))" value="造价 / 结算审计" readonly></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-h"><div><div class="panel-t">指标卡</div><div class="panel-d">数字不染色，语义色只在左侧 3px 细条</div></div></div>
+      <div class="panel-b" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+        <div class="stat"><i class="stat-bar" style="background:rgb(var(--c-primary))"></i><div class="stat-b"><div class="eyebrow">审计项目</div><div class="stat-v num">24</div><div class="stat-h">进行中 9</div></div></div>
+        <div class="stat"><i class="stat-bar" style="background:rgb(var(--c-text-muted))"></i><div class="stat-b"><div class="eyebrow">资料总数</div><div class="stat-v num">316</div><div class="stat-h">解析失败 4</div></div></div>
+        <div class="stat"><i class="stat-bar" style="background:rgb(var(--c-success))"></i><div class="stat-b"><div class="eyebrow">已解析资料</div><div class="stat-v num">298</div><div class="stat-h">解析率 94%</div></div></div>
+        <div class="stat"><i class="stat-bar" style="background:rgb(var(--c-danger))"></i><div class="stat-b"><div class="eyebrow">疑点总数</div><div class="stat-v num">137</div><div class="stat-h">来自核对与扫描</div></div></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-h"><div><div class="panel-t">表格</div><div class="panel-d">表头吸顶 + 极浅斑马纹，金额列右对齐且等宽</div></div></div>
+      <div style="max-height:280px;overflow-y:auto">
+        <table>
+          <thead><tr><th style="position:sticky;top:0">类型</th><th style="position:sticky;top:0">疑点</th><th style="position:sticky;top:0">风险</th><th style="position:sticky;top:0">状态</th><th class="ta-r" style="position:sticky;top:0">金额</th></tr></thead>
+          <tbody>
+            <tr><td style="color:rgb(var(--c-text-secondary));white-space:nowrap">量差异常</td><td>结算综合单价高于中标清单 12%<div style="font-size:12px;color:rgb(var(--c-text-muted));margin-top:2px">子目 011001001，清单 36.50 / 结算 40.88</div></td><td><span class="badge b-d"><i class="dot" style="background:rgb(var(--c-danger))"></i>高风险</span></td><td><span class="badge b-p">待处理</span></td><td class="ta-r num" style="color:rgb(var(--c-text-secondary))">¥1,286,400.00</td></tr>
+            <tr><td style="color:rgb(var(--c-text-secondary));white-space:nowrap">签章异常</td><td>签证单缺监理单位签章<div style="font-size:12px;color:rgb(var(--c-text-muted));margin-top:2px">签证编号 QZ-2026-037，第 2 页「监理人」栏无印章</div></td><td><span class="badge b-d"><i class="dot" style="background:rgb(var(--c-danger))"></i>高风险</span></td><td><span class="badge b-d">已确认</span></td><td class="ta-r num" style="color:rgb(var(--c-text-secondary))">¥98,250.00</td></tr>
+            <tr><td style="color:rgb(var(--c-text-secondary));white-space:nowrap">凑整金额</td><td>合价为整千数，疑似估算<div style="font-size:12px;color:rgb(var(--c-text-muted));margin-top:2px">子目 020502003，合价 250,000.00</div></td><td><span class="badge b-w"><i class="dot" style="background:rgb(var(--c-warning))"></i>中风险</span></td><td><span class="badge b-p">待处理</span></td><td class="ta-r num" style="color:rgb(var(--c-text-secondary))">¥250,000.00</td></tr>
+            <tr><td style="color:rgb(var(--c-text-secondary));white-space:nowrap">连号发票</td><td>同代码下连号发票 3 张<div style="font-size:12px;color:rgb(var(--c-text-muted));margin-top:2px">发票代码 011002100311，号码 08817321-08817323</div></td><td><span class="badge b-d"><i class="dot" style="background:rgb(var(--c-danger))"></i>高风险</span></td><td><span class="badge b-m">误报</span></td><td class="ta-r num" style="color:rgb(var(--c-text-secondary))">¥36,800.00</td></tr>
+            <tr><td style="color:rgb(var(--c-text-secondary));white-space:nowrap">资料缺口</td><td>缺清单侧数据，无法勾稽<div style="font-size:12px;color:rgb(var(--c-text-muted));margin-top:2px">未标注为「清单」类别的资料，12 条明细记为无法确认</div></td><td><span class="badge b-w"><i class="dot" style="background:rgb(var(--c-warning))"></i>中风险</span></td><td><span class="badge b-s">已关闭</span></td><td class="ta-r num" style="color:rgb(var(--c-text-muted))">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 6 登录页 ============ -->
+  <div class="sec">
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">页面还原 · 登录页</h2></div>
+    <p class="sec-d">
+      入口页直接拿主色做品牌面板 —— 与后台用的是同一个令牌，用户从登录到进入系统是视觉连续的。
+      左品牌 / 右表单，窄屏自动收起品牌面板、把标识挪到表单顶部。切换右上角的深浅色可以看到面板同样跟随令牌。
+    </p>
+    <div style="display:grid;grid-template-columns:1.05fr 1fr;max-width:860px;border:1px solid rgb(var(--c-border));border-radius:12px;overflow:hidden;background:rgb(var(--c-card));box-shadow:var(--shadow-pop)">
+      <!-- 品牌面板 -->
+      <div style="position:relative;overflow:hidden;padding:32px;min-height:452px;display:flex;flex-direction:column;color:rgb(var(--c-primary-fg));background:linear-gradient(135deg,rgb(var(--c-primary)),rgb(var(--c-primary-hover)))">
+        <span style="position:absolute;right:-80px;top:-80px;width:224px;height:224px;border-radius:50%;border:18px solid rgb(var(--c-primary-fg)/.07)"></span>
+        <span style="position:absolute;bottom:-96px;left:-64px;width:192px;height:192px;border-radius:50%;border:14px solid rgb(var(--c-primary-fg)/.05)"></span>
+
+        <div style="position:relative;display:flex;align-items:center;gap:12px">
+          <span style="display:flex;width:44px;height:44px;align-items:center;justify-content:center;border-radius:12px;background:rgb(var(--c-primary-fg)/.15);box-shadow:inset 0 0 0 1px rgb(var(--c-primary-fg)/.20)">
+            <svg class="ic" style="width:24px;height:24px"><use href="#i-shield"/></svg>
+          </span>
+          <span style="line-height:1.2">
+            <span style="display:block;font-size:16px;font-weight:600">审计智脑</span>
+            <span style="display:block;font-size:11px;letter-spacing:.1em;opacity:.7">AUDITBRAIN</span>
+          </span>
+        </div>
+
+        <p style="position:relative;margin:32px 0 0;max-width:280px;font-size:15px;font-weight:500;line-height:1.7">
+          让 AI 承担翻阅与比对，<br><span style="opacity:.8">人只做判断。</span>
+        </p>
+
+        <div style="position:relative;margin-top:32px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;gap:12px">
+            <span style="display:flex;width:24px;height:24px;flex:none;align-items:center;justify-content:center;border-radius:6px;background:rgb(var(--c-primary-fg)/.15)"><svg class="ic" style="width:13px;height:13px"><use href="#i-sparkles"/></svg></span>
+            <span style="font-size:12px;line-height:1.65"><strong style="font-weight:600">少花时间</strong><span style="opacity:.75">：自动翻找与比对，不用逐页手工核对</span></span>
+          </div>
+          <div style="display:flex;gap:12px">
+            <span style="display:flex;width:24px;height:24px;flex:none;align-items:center;justify-content:center;border-radius:6px;background:rgb(var(--c-primary-fg)/.15)"><svg class="ic" style="width:13px;height:13px"><use href="#i-check"/></svg></span>
+            <span style="font-size:12px;line-height:1.65"><strong style="font-weight:600">少漏问题</strong><span style="opacity:.75">：抽出一页某个单价差两元、签证少一方盖章这类细节</span></span>
+          </div>
+          <div style="display:flex;gap:12px">
+            <span style="display:flex;width:24px;height:24px;flex:none;align-items:center;justify-content:center;border-radius:6px;background:rgb(var(--c-primary-fg)/.15)"><svg class="ic" style="width:13px;height:13px"><use href="#i-clock"/></svg></span>
+            <span style="font-size:12px;line-height:1.65"><strong style="font-weight:600">说得清责任</strong><span style="opacity:.75">：每条疑点的处理人与处置时间全程留痕</span></span>
+          </div>
+        </div>
+
+        <div style="position:relative;margin-top:auto;padding-top:32px">
+          <div style="border-top:1px solid rgb(var(--c-primary-fg)/.20);padding-top:16px;font-size:11px;line-height:1.7;opacity:.75">
+            系统不下审计结论 —— 只指出可疑之处与证据位置，<br>是否构成问题由审计人员判断。
+          </div>
+        </div>
+      </div>
+
+      <!-- 表单 -->
+      <div style="padding:32px">
+        <h1 style="margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em;line-height:1.3">登录</h1>
+        <p style="margin:4px 0 0;font-size:14px;color:rgb(var(--c-text-secondary))">继续你的审计作业。</p>
+
+        <div style="margin-top:20px;display:flex;gap:2px;padding:2px;border:1px solid rgb(var(--c-border));background:rgb(var(--c-surface-2));border-radius:8px">
+          <button style="flex:1;text-align:center;border:1px solid rgb(var(--c-border));background:rgb(var(--c-card));color:rgb(var(--c-text));font-size:13px;font-weight:500;padding:4px 12px;border-radius:6px;box-shadow:var(--shadow-card)">登录</button>
+          <button style="flex:1;text-align:center;border:1px solid transparent;background:transparent;color:rgb(var(--c-text-secondary));font-size:13px;font-weight:500;padding:4px 12px;border-radius:6px">注册</button>
+        </div>
+
+        <div style="margin-top:20px;display:flex;flex-direction:column;gap:14px">
+          <div>
+            <div class="eyebrow" style="margin-bottom:6px;color:rgb(var(--c-text-secondary))">用户名</div>
+            <input class="field" value="huangkai" readonly>
+          </div>
+          <div>
+            <div class="eyebrow" style="margin-bottom:6px;color:rgb(var(--c-text-secondary))">密码</div>
+            <input class="field" type="password" value="********" readonly>
+          </div>
+          <span class="btn btn-p" style="width:100%;justify-content:center;padding:10px 16px;font-size:14px">登 录</span>
+        </div>
+
+        <p style="margin-top:20px;border-top:1px solid rgb(var(--c-border));padding-top:16px;font-size:11px;line-height:1.7;color:rgb(var(--c-text-muted))">
+          本系统为审计辅助工具，AI 结论仅供参考，请以人工复核为准。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 7 驾驶舱 ============ -->
+  <div class="sec">
+    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">页面还原 · 审计驾驶舱</h2></div>
+    <p class="sec-d">完整外壳：侧边栏分组、顶栏自定义项目切换器、指标卡、项目进度列表。</p>
+    <div class="app">
+      <div class="app-side">
+        <div class="app-brand">
+          <span style="display:flex;width:32px;height:32px;align-items:center;justify-content:center;border-radius:8px;background:rgb(var(--c-primary));color:rgb(var(--c-primary-fg))"><svg class="ic"><use href="#i-shield"/></svg></span>
+          <span><span style="display:block;font-size:13px;font-weight:600;line-height:1.2">审计智脑</span><span style="display:block;font-size:11px;letter-spacing:.08em;color:rgb(var(--c-text-muted))">AUDITBRAIN</span></span>
+        </div>
+        <div class="app-nav">
+          <div class="app-group">
+            <div class="app-gt">审计作业</div>
+            <div class="app-item on"><svg class="ic"><use href="#i-cockpit"/></svg>审计驾驶舱</div>
+            <div class="app-item"><svg class="ic"><use href="#i-folder"/></svg>审计项目</div>
+            <div class="app-item"><svg class="ic"><use href="#i-file"/></svg>资料舱</div>
+            <div class="app-item"><svg class="ic"><use href="#i-chat"/></svg>智能问答</div>
+            <div class="app-item"><svg class="ic"><use href="#i-checks"/></svg>核对程序</div>
+            <div class="app-item"><svg class="ic"><use href="#i-warn"/></svg>疑点台账</div>
+          </div>
+          <div class="app-group" style="margin-top:16px">
+            <div class="app-gt">系统管理</div>
+            <div class="app-item"><svg class="ic"><use href="#i-cpu"/></svg>模型配置</div>
+            <div class="app-item"><svg class="ic"><use href="#i-users"/></svg>用户管理</div>
+            <div class="app-item"><svg class="ic"><use href="#i-key"/></svg>角色管理</div>
+          </div>
+          <div class="app-group" style="margin-top:16px">
+            <div class="app-gt">账户</div>
+            <div class="app-item"><svg class="ic"><use href="#i-cog"/></svg>个人设置</div>
+          </div>
+        </div>
+        <div class="app-side-foot" style="display:flex;align-items:center;justify-content:center;gap:6px">
+          <svg class="ic" style="width:14px;height:14px;transform:rotate(180deg)"><use href="#i-sidebar"/></svg>收起
+        </div>
+      </div>
+      <div class="app-main">
+        <div class="app-head">
+          <div class="projsw">
+            <svg class="ic" style="width:15px;height:15px;color:rgb(var(--c-text-muted))"><use href="#i-building"/></svg>
+            <span style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">第二人民医院迁建工程结算审计</span>
+            <svg class="ic" style="width:14px;height:14px;color:rgb(var(--c-text-muted))"><use href="#i-chev-d"/></svg>
+          </div>
+          <div style="display:flex;align-items:center;gap:2px">
+            <span class="iconbtn"><svg class="ic" style="width:16px;height:16px"><use href="#i-book"/></svg></span>
+            <span class="iconbtn"><svg class="ic" style="width:16px;height:16px"><use href="#i-moon"/></svg></span>
+            <span style="width:1px;height:20px;background:rgb(var(--c-border));margin:0 6px"></span>
+            <span class="avatar">黄</span>
+            <span style="font-size:13px;color:rgb(var(--c-text-secondary));margin-left:8px">黄凯</span>
+            <span class="iconbtn" style="margin-left:4px"><svg class="ic" style="width:16px;height:16px"><use href="#i-out"/></svg></span>
+          </div>
+        </div>
+        <div class="app-body">
+          <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px">
+            <div>
+              <h1 style="font-size:18px;font-weight:600;letter-spacing:-.01em;margin:0;line-height:1.3">审计驾驶舱</h1>
+              <p style="margin:4px 0 0;font-size:13px;color:rgb(var(--c-text-secondary));max-width:640px">全局概览：项目进度、资料解析情况与疑点分布。所有操作都作用于顶栏当前选中的项目。</p>
+            </div>
+            <span class="btn btn-p"><svg class="ic" style="width:15px;height:15px"><use href="#i-plus"/></svg>新建项目</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:20px">
+            <div class="stat"><i class="stat-bar" style="background:rgb(var(--c-primary))"></i><div class="stat-b"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span class="eyebrow">审计项目</span><svg class="ic" style="width:15px;height:15px;color:rgb(var(--c-text-muted))"><use href="#i-folder"/></svg></div><div class="stat-v num">24</div><div class="stat-h">进行中 9</div></div></div>
+            <div class="stat"><i class="stat-bar" style="background:rgb(var(--c-text-muted))"></i><div class="stat-b"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span class="eyebrow">资料总数</span><svg class="ic" style="width:15px;height:15px;color:rgb(var(--c-text-muted))"><use href="#i-file"/></svg></div><div class="stat-v num">316</div><div class="stat-h">解析失败 4</div></div></div>
+            <div class="stat"><i class="stat-bar" style="background:rgb(var(--c-success))"></i><div class="stat-b"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span class="eyebrow">已解析资料</span><svg class="ic" style="width:15px;height:15px;color:rgb(var(--c-text-muted))"><use href="#i-scan"/></svg></div><div class="stat-v num">298</div><div class="stat-h">解析率 94%</div></div></div>
+            <div class="stat"><i class="stat-bar" style="background:rgb(var(--c-danger))"></i><div class="stat-b"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span class="eyebrow">疑点总数</span><svg class="ic" style="width:15px;height:15px;color:rgb(var(--c-text-muted))"><use href="#i-warn"/></svg></div><div class="stat-v num">137</div><div class="stat-h">来自核对与扫描</div></div></div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:16px">
+            <div class="panel">
+              <div class="panel-h">
+                <div><div class="panel-t">进行中的项目</div><div class="panel-d">资料解析进度与疑点数量</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:rgb(var(--c-primary))">查看全部<svg class="ic" style="width:13px;height:13px"><use href="#i-chev-r"/></svg></span>
+              </div>
+              <div>
+                <div class="prow">
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">第二人民医院迁建工程结算审计</span></div>
+                    <div style="margin-top:4px;display:flex;align-items:center;gap:6px;font-size:11px;color:rgb(var(--c-text-muted))"><span class="num">SJ-2026-014</span><span>·</span><span>造价 / 结算审计</span><span>·</span><span class="num">2026Q1</span></div>
+                  </div>
+                  <div style="width:160px;flex:none">
+                    <div class="pbar"><i style="width:92%;background:rgb(var(--c-primary))"></i></div>
+                    <div class="num" style="margin-top:4px;font-size:11px;color:rgb(var(--c-text-muted))">已解析 23/25</div>
+                  </div>
+                  <div style="width:64px;flex:none;text-align:right"><div class="num" style="font-size:13px;font-weight:600;color:rgb(var(--c-danger))">42</div><div style="font-size:11px;color:rgb(var(--c-text-muted))">疑点</div></div>
+                  <svg class="ic" style="width:15px;height:15px;color:rgb(var(--c-text-muted));opacity:.4"><use href="#i-arrow-r"/></svg>
+                </div>
+                <div class="prow">
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">城东安置房一期市政配套工程</span><span class="tag">参与</span></div>
+                    <div style="margin-top:4px;display:flex;align-items:center;gap:6px;font-size:11px;color:rgb(var(--c-text-muted))"><span class="num">SJ-2026-011</span><span>·</span><span>工程审计</span></div>
+                  </div>
+                  <div style="width:160px;flex:none">
+                    <div class="pbar"><i style="width:100%;background:rgb(var(--c-success))"></i></div>
+                    <div class="num" style="margin-top:4px;font-size:11px;color:rgb(var(--c-text-muted))">已解析 18/18</div>
+                  </div>
+                  <div style="width:64px;flex:none;text-align:right"><div class="num" style="font-size:13px;font-weight:600;color:rgb(var(--c-danger))">17</div><div style="font-size:11px;color:rgb(var(--c-text-muted))">疑点</div></div>
+                  <svg class="ic" style="width:15px;height:15px;color:rgb(var(--c-text-muted));opacity:.4"><use href="#i-arrow-r"/></svg>
+                </div>
+                <div class="prow">
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">经开区标准化厂房竣工决算</span></div>
+                    <div style="margin-top:4px;display:flex;align-items:center;gap:6px;font-size:11px;color:rgb(var(--c-text-muted))"><span class="num">SJ-2026-009</span><span>·</span><span>竣工决算</span><span>·</span><span class="num">2025Q4</span></div>
+                  </div>
+                  <div style="width:160px;flex:none">
+                    <div class="pbar"><i style="width:45%;background:rgb(var(--c-primary))"></i></div>
+                    <div class="num" style="margin-top:4px;font-size:11px;color:rgb(var(--c-text-muted))">已解析 9/20</div>
+                  </div>
+                  <div style="width:64px;flex:none;text-align:right"><div class="num" style="font-size:13px;font-weight:600;color:rgb(var(--c-text-muted))">0</div><div style="font-size:11px;color:rgb(var(--c-text-muted))">疑点</div></div>
+                  <svg class="ic" style="width:15px;height:15px;color:rgb(var(--c-text-muted));opacity:.4"><use href="#i-arrow-r"/></svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-h"><div><div class="panel-t">项目概览</div><div class="panel-d">全部项目的状态与疑点</div></div></div>
+              <div style="max-height:300px;overflow-y:auto">
+                <table>
+                  <thead><tr><th>项目</th><th>状态</th><th class="ta-r">疑点</th></tr></thead>
+                  <tbody>
+                    <tr><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">第二人民医院迁建工程结算审计</td><td><span class="badge b-s"><i class="dot" style="background:rgb(var(--c-success))"></i>进行中</span></td><td class="ta-r num" style="font-weight:500;color:rgb(var(--c-danger))">42</td></tr>
+                    <tr><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">城东安置房一期市政配套</td><td><span class="badge b-s"><i class="dot" style="background:rgb(var(--c-success))"></i>进行中</span></td><td class="ta-r num" style="font-weight:500;color:rgb(var(--c-danger))">17</td></tr>
+                    <tr><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">经开区标准化厂房竣工决算</td><td><span class="badge b-s"><i class="dot" style="background:rgb(var(--c-success))"></i>进行中</span></td><td class="ta-r num" style="color:rgb(var(--c-text-muted))">0</td></tr>
+                    <tr><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">滨江路综合管线改造工程</td><td><span class="badge b-m"><i class="dot" style="background:rgb(var(--c-text-muted))"></i>已完成</span></td><td class="ta-r num" style="color:rgb(var(--c-text-muted))">8</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 8 疑点台账 ============ -->
+  <div class="sec">
+    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t">页面还原 · 疑点台账</h2></div>
+    <p class="sec-d">核心工作台：左侧清单可扫读，右侧详情面板处置，处置历史用时间线呈现 —— 契合审计「留痕」的语义。</p>
+    <div class="panel">
+      <div class="panel-b" style="padding:20px">
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px">
+          <div>
+            <h1 style="font-size:18px;font-weight:600;letter-spacing:-.01em;margin:0;line-height:1.3">疑点台账</h1>
+            <p style="margin:4px 0 0;font-size:13px;color:rgb(var(--c-text-secondary));max-width:640px">规则扫描发现 + 核对程序差异汇入。系统只指出可疑之处与证据位置，是否构成问题由你判断。</p>
+          </div>
+          <span class="btn btn-p"><svg class="ic" style="width:14px;height:14px"><use href="#i-play"/></svg>运行疑点扫描</span>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:20px;border:1px solid rgb(var(--c-border));background:rgb(var(--c-card));border-radius:10px;padding:10px 16px;margin-top:16px">
+          <div style="display:flex;align-items:center;gap:8px"><span class="eyebrow">风险</span><span class="seg"><button class="on">全部</button><button>高</button><button>中</button><button>低</button></span></div>
+          <div style="display:flex;align-items:center;gap:8px"><span class="eyebrow">状态</span><span class="seg"><button class="on">全部</button><button>待处理</button><button>已确认</button><button>误报</button><button>已关闭</button></span></div>
+        </div>
+
+        <div class="summary" style="margin-top:16px">
+          <div><div class="num" style="font-size:20px;font-weight:600;line-height:1">137</div><div style="margin-top:4px;font-size:11px;color:rgb(var(--c-text-muted))">疑点总数</div></div>
+          <div><div class="num" style="font-size:20px;font-weight:600;line-height:1;color:rgb(var(--c-danger))">38</div><div style="margin-top:4px;font-size:11px;color:rgb(var(--c-text-muted))">高风险</div></div>
+          <div><div class="num" style="font-size:20px;font-weight:600;line-height:1;color:rgb(var(--c-warning))">54</div><div style="margin-top:4px;font-size:11px;color:rgb(var(--c-text-muted))">中风险</div></div>
+          <div><div class="num" style="font-size:20px;font-weight:600;line-height:1;color:rgb(var(--c-text-secondary))">45</div><div style="margin-top:4px;font-size:11px;color:rgb(var(--c-text-muted))">低风险</div></div>
+          <div><div class="num" style="font-size:20px;font-weight:600;line-height:1;color:rgb(var(--c-primary))">61</div><div style="margin-top:4px;font-size:11px;color:rgb(var(--c-text-muted))">待处理</div></div>
+          <div><div class="num" style="font-size:20px;font-weight:600;line-height:1;color:rgb(var(--c-danger))">52</div><div style="margin-top:4px;font-size:11px;color:rgb(var(--c-text-muted))">已确认</div></div>
+          <div><div class="num" style="font-size:20px;font-weight:600;line-height:1;color:rgb(var(--c-success))">24</div><div style="margin-top:4px;font-size:11px;color:rgb(var(--c-text-muted))">已关闭</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:16px">
+          <div class="panel" style="margin:0">
+            <div class="panel-h"><div><div class="panel-t">疑点清单</div><div class="panel-d">共 137 条，点击一行查看详情</div></div></div>
+            <div style="max-height:420px;overflow-y:auto">
+              <table>
+                <thead><tr><th style="position:sticky;top:0">类型</th><th style="position:sticky;top:0">疑点</th><th style="position:sticky;top:0">风险</th><th style="position:sticky;top:0">状态</th><th class="ta-r" style="position:sticky;top:0">金额</th></tr></thead>
+                <tbody>
+                  <tr style="background:rgb(var(--c-primary)/.07)"><td style="color:rgb(var(--c-text-secondary));white-space:nowrap">量差异常</td><td>结算综合单价高于中标清单 12%<div style="font-size:12px;color:rgb(var(--c-text-muted));margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">子目 011001001，清单 36.50 / 结算 40.88</div></td><td><span class="badge b-d"><i class="dot" style="background:rgb(var(--c-danger))"></i>高风险</span></td><td><span class="badge b-p">待处理</span></td><td class="ta-r num" style="color:rgb(var(--c-text-secondary));white-space:nowrap">¥1,286,400.00</td></tr>
+                  <tr><td style="color:rgb(var(--c-text-secondary));white-space:nowrap">签章异常</td><td>签证单缺监理单位签章<div style="font-size:12px;color:rgb(var(--c-text-muted));margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">签证 QZ-2026-037，第 2 页「监理人」栏无印章</div></td><td><span class="badge b-d"><i class="dot" style="background:rgb(var(--c-danger))"></i>高风险</span></td><td><span class="badge b-d">已确认</span></td><td class="ta-r num" style="color:rgb(var(--c-text-secondary));white-space:nowrap">¥98,250.00</td></tr>
+                  <tr><td style="color:rgb(var(--c-text-secondary));white-space:nowrap">凑整金额</td><td>合价为整千数，疑似估算<div style="font-size:12px;color:rgb(var(--c-text-muted));margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">子目 020502003，合价 250,000.00</div></td><td><span class="badge b-w"><i class="dot" style="background:rgb(var(--c-warning))"></i>中风险</span></td><td><span class="badge b-p">待处理</span></td><td class="ta-r num" style="color:rgb(var(--c-text-secondary));white-space:nowrap">¥250,000.00</td></tr>
+                  <tr><td style="color:rgb(var(--c-text-secondary));white-space:nowrap">集中签证</td><td>30 天内集中补办签证 4 份<div style="font-size:12px;color:rgb(var(--c-text-muted));margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">竣工日期 2026-01-18，签证集中在 01-05 至 01-28</div></td><td><span class="badge b-d"><i class="dot" style="background:rgb(var(--c-danger))"></i>高风险</span></td><td><span class="badge b-p">待处理</span></td><td class="ta-r num" style="color:rgb(var(--c-text-secondary));white-space:nowrap">¥412,600.00</td></tr>
+                  <tr><td style="color:rgb(var(--c-text-secondary));white-space:nowrap">资料缺口</td><td>缺清单侧数据，无法勾稽<div style="font-size:12px;color:rgb(var(--c-text-muted));margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">12 条明细只能记为无法确认</div></td><td><span class="badge b-w"><i class="dot" style="background:rgb(var(--c-warning))"></i>中风险</span></td><td><span class="badge b-s">已关闭</span></td><td class="ta-r num" style="color:rgb(var(--c-text-muted));white-space:nowrap">—</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel" style="margin:0">
+            <div class="panel-h"><div><div class="panel-t">疑点详情</div><div class="panel-d">判断后处置，处置全程留痕</div></div></div>
+            <div class="panel-b">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
+                <span class="badge b-d"><i class="dot" style="background:rgb(var(--c-danger))"></i>高风险</span>
+                <span class="badge b-p">待处理</span>
+                <span style="font-size:12px;color:rgb(var(--c-text-muted))">量差异常</span>
+              </div>
+              <h3 style="margin:8px 0 0;font-size:15px;font-weight:600;line-height:1.4">结算综合单价高于中标清单 12%</h3>
+
+              <p style="margin:12px 0 0;font-size:13px;line-height:1.7;color:rgb(var(--c-text-secondary))">
+                清单子目 011001001 约定综合单价 36.50 元，结算书申报 40.88 元，差 4.38 元/单位，
+                工程量 293,700 单位，合计差 1,286,400.00 元。
+              </p>
+
+              <div style="border-left:2px solid rgb(var(--c-accent));background:rgb(var(--c-accent)/.07);border-radius:8px;padding:8px 12px;margin-top:12px">
+                <div style="font-size:12px;font-weight:500;color:rgb(var(--c-accent))">审计建议</div>
+                <p style="margin:2px 0 0;font-size:12px;line-height:1.65;color:rgb(var(--c-text-secondary))">调取中标清单与结算书原件比对，确认是否存在经批准的单价调整或组价变更。</p>
+              </div>
+
+              <div style="display:flex;align-items:baseline;justify-content:space-between;border-top:1px solid rgb(var(--c-border));border-bottom:1px solid rgb(var(--c-border));padding:8px 0;margin-top:12px">
+                <span class="eyebrow">涉及金额</span><span class="num" style="font-size:15px;font-weight:600">¥1,286,400.00</span>
+              </div>
+
+              <div style="margin-top:12px">
+                <div class="eyebrow" style="margin-bottom:6px;color:rgb(var(--c-text-secondary))">处置结论</div>
+                <span class="seg" style="width:100%;justify-content:space-between"><button class="on">待处理</button><button>已确认</button><button>误报</button><button>已关闭</button></span>
+              </div>
+
+              <div style="margin-top:12px">
+                <div class="eyebrow" style="margin-bottom:6px;color:rgb(var(--c-text-secondary))">处置备注</div>
+                <textarea class="field" rows="3" style="width:100%;resize:none;line-height:1.6">已与施工单位核对，属实</textarea>
+                <span class="btn btn-s" style="margin-top:8px;font-size:12px;padding:4px 10px">保存备注</span>
+              </div>
+
+              <div style="border-top:1px solid rgb(var(--c-border));padding-top:12px;margin-top:12px">
+                <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:rgb(var(--c-text-secondary))">
+                  <svg class="ic" style="width:13px;height:13px"><use href="#i-link"/></svg>处置历史（2）
+                </div>
+                <ul class="tl" style="margin-top:12px;padding-left:16px">
+                  <li>
+                    <div style="font-size:12px;line-height:1.65;color:rgb(var(--c-text-secondary))"><strong style="color:rgb(var(--c-text));font-weight:600">李工</strong> <span style="color:rgb(var(--c-text-muted))">将状态从「待处理」改为「已确认」</span></div>
+                    <div class="num" style="font-size:11px;color:rgb(var(--c-text-muted));margin-top:2px">03-05 10:15</div>
+                    <div class="note">备注：已与施工单位核对，属实</div>
+                  </li>
+                  <li style="list-style:none">
+                    <div style="font-size:12px;line-height:1.65;color:rgb(var(--c-text-secondary))"><strong style="color:rgb(var(--c-text));font-weight:600">王审</strong> <span style="color:rgb(var(--c-text-muted))">将状态从「已确认」改为「误报」</span></div>
+                    <div class="num" style="font-size:11px;color:rgb(var(--c-text-muted));margin-top:2px">03-12 16:40</div>
+                    <div class="note">备注：该项属合理组价调整，已附批文</div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    审计智脑 AuditBrain · 界面设计系统 v2 · 令牌定义在 <code>src/app/globals.css</code> 与 <code>tailwind.config.ts</code>，
+    组件在 <code>src/components/ui/primitives.tsx</code>，图标在 <code>src/components/ui/icons.tsx</code>
+  </footer>
+</div>
+
+</body>
+</html>

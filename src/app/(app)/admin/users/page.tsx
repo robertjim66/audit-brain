@@ -119,8 +119,8 @@ export default function UsersAdminPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-text">用户管理</h1>
-          <p className="text-sm text-text-muted">创建 / 编辑账号、分配角色、重置密码。超级管理员账号受保护。</p>
+          <h1 className="text-lg font-semibold leading-tight tracking-tight text-text">用户管理</h1>
+          <p className="mt-1 text-sm leading-relaxed text-text-secondary">创建 / 编辑账号、分配角色、重置密码。超级管理员账号受保护。</p>
         </div>
         <Button onClick={() => setCreateOpen(true)}>+ 新增用户</Button>
       </div>

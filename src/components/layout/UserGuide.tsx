@@ -8,7 +8,8 @@
  * 表内的资料依赖关系从核对程序与疑点扫描的实际取数条件反推，非估算。
  */
 import React, { useState } from 'react';
-import { Button, Modal } from '@/components/ui/primitives';
+import { Button, Modal, Segmented } from '@/components/ui/primitives';
+import { IconBook, IconCheck, IconFindings } from '@/components/ui/icons';
 
 const DOC_URL = 'https://github.com/robertjim66/audit-brain/blob/main/docs/%E4%B8%9A%E5%8A%A1%E8%AF%B4%E6%98%8E%E4%B9%A6.md';
 
@@ -149,25 +150,19 @@ export function GuideButton() {
   return (
     <>
       <Button variant="ghost" size="sm" onClick={() => { setOpen(true); setTab(0); }} title="查看使用指南">
-        📖 使用指南
+        <IconBook size={15} />
+        使用指南
       </Button>
 
       <Modal open={open} title="使用指南" onClose={() => setOpen(false)} width="max-w-4xl">
         <div className="space-y-4">
           {/* 页签 */}
-          <div className="flex flex-wrap gap-1 border-b border-border pb-2">
-            {TABS.map((t, i) => (
-              <button
-                key={t}
-                onClick={() => setTab(i)}
-                className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                  tab === i ? 'bg-primary text-primary-fg' : 'text-text-secondary hover:bg-bg'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            options={TABS.map((t, i) => ({ value: String(i), label: t }))}
+            value={String(tab)}
+            onChange={(v) => setTab(Number(v))}
+            className="w-full justify-start overflow-x-auto"
+          />
 
           {/* 页签一：快速上手 */}
           {tab === 0 && (
@@ -249,7 +244,11 @@ export function GuideButton() {
                 <div className="space-y-1">
                   {FORMATS.map((f) => (
                     <div key={f.f} className="flex items-start gap-2 text-xs">
-                      <span className={f.ok ? 'text-success shrink-0' : 'text-warning shrink-0'}>{f.ok ? '✓' : '⚠'}</span>
+                      {f.ok ? (
+                        <IconCheck size={13} className="mt-0.5 shrink-0 text-success" />
+                      ) : (
+                        <IconFindings size={13} className="mt-0.5 shrink-0 text-warning" />
+                      )}
                       <span className="text-text font-medium shrink-0">{f.f}</span>
                       <span className="text-text-secondary">{f.note}</span>
                     </div>

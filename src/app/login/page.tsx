@@ -5,7 +5,14 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/apiClient';
 import { useAuth } from '@/components/layout/Providers';
 import { useToast } from '@/components/ui/Toast';
-import { Button, Input } from '@/components/ui/primitives';
+import { Button, Field, Input, Segmented, Spinner } from '@/components/ui/primitives';
+import { IconShieldCheck, IconSparkles, IconCheck, IconClock } from '@/components/ui/icons';
+
+const VALUES = [
+  { icon: IconSparkles, t: '少花时间', d: '自动翻找与比对，不用逐页手工核对' },
+  { icon: IconCheck, t: '少漏问题', d: '抽出一页某个单价差两元、签证少一方盖章这类细节' },
+  { icon: IconClock, t: '说得清责任', d: '每条疑点的处理人与处置时间全程留痕' },
+];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -40,74 +47,126 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-start justify-center bg-bg p-4 py-8">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-primary text-primary-fg flex items-center justify-center text-2xl">🔍</div>
-          <h1 className="text-xl font-bold text-text mt-3">审计智脑 AuditBrain</h1>
-          <p className="text-sm text-text-muted mt-1">资料上传 · AI 审读 · 疑点溯源</p>
-        </div>
-        <div className="bg-card border border-border rounded-2xl shadow-card p-6">
-          <div className="flex mb-5 rounded-lg bg-bg p-1">
-            <button
-              className={`flex-1 py-1.5 text-sm rounded-md transition-colors ${mode === 'login' ? 'bg-primary text-primary-fg' : 'text-text-secondary'}`}
-              onClick={() => setMode('login')}
-            >登录</button>
-            <button
-              className={`flex-1 py-1.5 text-sm rounded-md transition-colors ${mode === 'register' ? 'bg-primary text-primary-fg' : 'text-text-secondary'}`}
-              onClick={() => setMode('register')}
-            >注册</button>
+    <div className="flex min-h-screen justify-center bg-bg px-4 py-8">
+      {/* my-auto 代替外层 items-center：视口比卡片矮时可正常滚动，不会裁掉顶部 */}
+      <div className="my-auto grid w-full max-w-md overflow-hidden rounded-xl border border-border bg-card shadow-pop lg:max-w-5xl lg:grid-cols-[1.05fr_1fr]">
+
+        {/* ============ 品牌面板：直接用主色，与系统内主色同源（lg 以下隐藏） ============ */}
+        <div className="relative hidden flex-col overflow-hidden bg-gradient-to-br from-primary to-primary-hover p-10 text-primary-fg lg:flex">
+          {/* 低调的圆形装饰，避免大色块发闷 */}
+          <span className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full border-[18px] border-primary-fg/[0.07]" />
+          <span className="pointer-events-none absolute -bottom-24 -left-16 h-48 w-48 rounded-full border-[14px] border-primary-fg/[0.05]" />
+
+          <div className="relative flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-fg/15 ring-1 ring-primary-fg/20">
+              <IconShieldCheck size={24} />
+            </span>
+            <span className="leading-tight">
+              <span className="block text-base font-semibold">审计智脑</span>
+              <span className="block text-2xs tracking-[0.1em] opacity-70">AUDITBRAIN</span>
+            </span>
           </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-sm text-text-secondary">用户名</label>
-              <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="3-20 位字母/数字/中文" autoFocus />
-            </div>
-            <div>
-              <label className="text-sm text-text-secondary">密码</label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="6-50 位" />
-            </div>
-            {mode === 'register' && (
-              <div>
-                <label className="text-sm text-text-secondary">昵称</label>
-                <Input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="选填，默认同用户名" />
+
+          <p className="relative mt-10 max-w-xs text-[15px] font-medium leading-relaxed">
+            让 AI 承担翻阅与比对，<br />
+            <span className="opacity-80">人只做判断。</span>
+          </p>
+
+          <div className="relative mt-10 space-y-5">
+            {VALUES.map(({ icon: Icon, t, d }) => (
+              <div key={t} className="flex gap-3">
+                <span className="mt-px flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary-fg/15">
+                  <Icon size={13} />
+                </span>
+                <span className="text-xs leading-relaxed">
+                  <span className="font-medium">{t}</span>
+                  <span className="opacity-75">：{d}</span>
+                </span>
               </div>
+            ))}
+          </div>
+
+          <div className="relative mt-auto pt-10">
+            <div className="border-t border-primary-fg/20 pt-4 text-2xs leading-relaxed opacity-75">
+              系统不下审计结论 —— 只指出可疑之处与证据位置，
+              <br />
+              是否构成问题由审计人员判断。
+            </div>
+          </div>
+        </div>
+
+        {/* ============ 表单 ============ */}
+        <div className="flex flex-col p-7 lg:p-10">
+          {/* 窄屏下品牌行（面板被隐藏时补上标识） */}
+          <div className="mb-6 flex items-center gap-3 lg:hidden">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-fg">
+              <IconShieldCheck size={20} />
+            </span>
+            <span className="leading-tight">
+              <span className="block text-sm font-semibold text-text">审计智脑</span>
+              <span className="block text-2xs tracking-[0.1em] text-text-muted">AUDITBRAIN</span>
+            </span>
+          </div>
+
+          <div className="hidden lg:block">
+            <h1 className="text-lg font-semibold leading-tight tracking-tight text-text">
+              {mode === 'login' ? '登录' : '创建账号'}
+            </h1>
+            <p className="mt-1 text-sm leading-relaxed text-text-secondary">
+              {mode === 'login' ? '继续你的审计作业。' : '注册后即可创建第一个审计项目。'}
+            </p>
+          </div>
+
+          <div className="mt-5">
+            <Segmented
+              full
+              value={mode}
+              onChange={(v) => setMode(v as 'login' | 'register')}
+              options={[
+                { value: 'login', label: '登录' },
+                { value: 'register', label: '注册' },
+              ]}
+            />
+          </div>
+
+          <form onSubmit={handleSubmit} className="mb-5 mt-5 space-y-3.5">
+            <Field label="用户名">
+              <Input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="3-20 位字母 / 数字 / 中文"
+                autoFocus
+                autoComplete="username"
+              />
+            </Field>
+            <Field label="密码">
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="6-50 位"
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              />
+            </Field>
+            {mode === 'register' && (
+              <Field label="昵称" hint="选填，默认同用户名；会显示在处置记录中">
+                <Input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="如：李工"
+                />
+              </Field>
             )}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="mt-1 w-full" size="lg" disabled={loading}>
+              {loading ? <Spinner size={15} /> : null}
               {loading ? '处理中…' : mode === 'login' ? '登 录' : '注 册'}
             </Button>
           </form>
-        </div>
-        <p className="text-center text-xs text-text-muted mt-4">本系统为审计辅助工具，AI 结论仅供参考，请以人工复核为准</p>
-      </div>
 
-      {/* 系统能做什么 */}
-      <div className="w-full max-w-sm mt-6 rounded-2xl border border-border bg-card p-5">
-        <h2 className="text-sm font-semibold text-text">这套系统帮你做什么</h2>
-        <p className="mt-1.5 text-xs leading-relaxed text-text-secondary">
-          建设工程结算审计要核对几百页结算书、几十份签证单再加合同与发票。系统负责把资料读成可比对的数据、
-          两边自动比对、把可疑之处连同证据整理成清单；<span className="text-text">判断合不合理、最终下结论，仍然由你来做。</span>
-        </p>
-        <ul className="mt-3 space-y-1.5">
-          {[
-            ['少花时间', '自动翻找与比对，不用逐页手工核对'],
-            ['少漏问题', '抽出一页某个单价差两元、签证少一方盖章这类细节'],
-            ['说得清责任', '每条疑点的处理人与处置时间全程留痕'],
-          ].map(([t, d]) => (
-            <li key={t} className="flex gap-2 text-xs">
-              <span className="text-primary shrink-0">·</span>
-              <span>
-                <span className="font-medium text-text">{t}</span>
-                <span className="text-text-secondary">：{d}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 text-xs text-text-muted">
-          登录后点顶栏的
-          <span className="text-text-secondary">「📖 使用指南」</span>
-          可看到完整操作顺序与资料准备要求。
-        </p>
+          <p className="mt-auto border-t border-border pt-4 text-2xs leading-relaxed text-text-muted">
+            本系统为审计辅助工具，AI 结论仅供参考，请以人工复核为准。
+          </p>
+        </div>
       </div>
     </div>
   );

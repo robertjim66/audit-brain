@@ -19,10 +19,10 @@ function fmtSize(n: number) {
 }
 function StatusBadge({ s, progress }: { s: string; progress?: number }) {
   const map: Record<string, string> = {
-    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-    processing: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-    done: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
-    failed: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
+    pending: 'bg-warning/10 text-warning  ',
+    processing: 'bg-primary text-primary  ',
+    done: 'bg-success/10 text-success  ',
+    failed: 'bg-danger/10 text-danger  ',
   };
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${map[s] || ''}`}>
@@ -115,9 +115,9 @@ export default function DocumentsPage() {
 
   if (!currentProjectId) {
     return (
-      <div className="mx-auto max-w-2xl rounded-xl border border-slate-200 bg-white p-8 text-center dark:border-slate-700 dark:bg-slate-800">
-        <p className="text-slate-600 dark:text-slate-300">请先选择一个审计项目，再进入资料舱。</p>
-        <Link href="/projects" className="mt-3 inline-block rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white">前往项目</Link>
+      <div className="mx-auto max-w-2xl rounded-xl border border-border bg-card p-8 text-center">
+        <p className="text-text-secondary">请先选择一个审计项目，再进入资料舱。</p>
+        <Link href="/projects"className="mt-3 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white">前往项目</Link>
       </div>
     );
   }
@@ -126,116 +126,116 @@ export default function DocumentsPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">资料舱</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">上传工程资料（合同/清单/结算/签证/发票等），系统自动解析并建立证据锚点</p>
+          <h1 className="text-lg font-semibold leading-tight tracking-tight text-text">资料舱</h1>
+          <p className="mt-1 text-sm leading-relaxed text-text-secondary">上传工程资料（合同/清单/结算/签证/发票等），系统自动解析并建立证据锚点</p>
         </div>
       </div>
 
-      {msg && <div className="rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700 dark:bg-slate-700/40 dark:text-slate-200">{msg}</div>}
+      {msg && <div className="rounded-lg bg-surface2 px-3 py-2 text-sm text-text-secondary">{msg}</div>}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
+      <div className="rounded-xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="mb-1 block text-xs text-slate-500">业务类别</label>
-            <select value={cat} onChange={(e) => setCat(e.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700">
+            <label className="mb-1 block text-xs text-text-secondary">业务类别</label>
+            <select value={cat} onChange={(e) => setCat(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-sm">
               <option value="">自动识别</option>
               {BIZ.map((b) => <option key={b} value={b}>{BIZ_CATEGORY_LABELS[b] || b}</option>)}
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-slate-500">文档类型</label>
-            <select value={docType} onChange={(e) => setDocType(e.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700">
+            <label className="mb-1 block text-xs text-text-secondary">文档类型</label>
+            <select value={docType} onChange={(e) => setDocType(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-sm">
               <option value="">自动识别</option>
               {DOCTYPE.map((d) => <option key={d} value={d}>{DOC_TYPE_LABELS[d] || d}</option>)}
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-slate-500">选择文件（可多选）</label>
-            <input id="fileInput" type="file" multiple accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg,.webp" onChange={(e) => setFiles(Array.from(e.target.files || []))} className="block text-sm" />
+            <label className="mb-1 block text-xs text-text-secondary">选择文件（可多选）</label>
+            <input id="fileInput"type="file"multiple accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg,.webp"onChange={(e) => setFiles(Array.from(e.target.files || []))} className="block text-sm"/>
           </div>
-          <button onClick={onUpload} disabled={!files.length || uploading} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+          <button onClick={onUpload} disabled={!files.length || uploading} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
             {uploading ? '上传中…' : files.length > 1 ? `上传并解析（${files.length} 个）` : '上传并解析'}
           </button>
         </div>
         {files.length > 0 && (
-          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">已选 {files.length} 个文件，合计 {fmtSize(files.reduce((s, f) => s + f.size, 0))}；解析为串行队列，会按顺序逐个处理。</p>
+          <p className="mt-2 text-xs text-text-secondary">已选 {files.length} 个文件，合计 {fmtSize(files.reduce((s, f) => s + f.size, 0))}；解析为串行队列，会按顺序逐个处理。</p>
         )}
-        <p className="mt-2 text-xs text-slate-400">支持 PDF / Word(.docx) / Excel(.xlsx,.xls) / 图片；Excel 与 Word 可在无外部密钥下本地解析，PDF/图片识别需配置 OCR_KEY。</p>
+        <p className="mt-2 text-xs text-text-muted">支持 PDF / Word(.docx) / Excel(.xlsx,.xls) / 图片；Excel 与 Word 可在无外部密钥下本地解析，PDF/图片识别需配置 OCR_KEY。</p>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-700/40 dark:text-slate-300">
+          <thead className="bg-surface2 text-left text-text-secondary">
             <tr>
               <th className="px-4 py-2">文件名</th><th className="px-3 py-2">类别</th><th className="px-3 py-2">类型</th>
               <th className="px-3 py-2">大小</th><th className="px-3 py-2">页/表</th><th className="px-3 py-2">解析</th><th className="px-3 py-2">操作</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+          <tbody className="divide-y divide-border">
             {docs.map((d) => (
-              <tr key={d.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
-                <td className="max-w-xs truncate px-4 py-2 text-slate-900 dark:text-slate-100">{d.file_name}</td>
-                <td className="px-3 py-2 text-slate-500" title={d.biz_category}>{BIZ_CATEGORY_LABELS[d.biz_category] || d.biz_category}</td>
-                <td className="px-3 py-2 text-slate-500" title={d.doc_type}>{DOC_TYPE_LABELS[d.doc_type] || d.doc_type}</td>
-                <td className="px-3 py-2 text-slate-500">{fmtSize(d.file_size)}</td>
-                <td className="px-3 py-2 text-slate-500">{d.page_count || 0}/{d.sheet_count || 0}</td>
+              <tr key={d.id} className="hover:bg-surface2">
+                <td className="max-w-xs truncate px-4 py-2 text-text">{d.file_name}</td>
+                <td className="px-3 py-2 text-text-secondary"title={d.biz_category}>{BIZ_CATEGORY_LABELS[d.biz_category] || d.biz_category}</td>
+                <td className="px-3 py-2 text-text-secondary"title={d.doc_type}>{DOC_TYPE_LABELS[d.doc_type] || d.doc_type}</td>
+                <td className="px-3 py-2 text-text-secondary">{fmtSize(d.file_size)}</td>
+                <td className="px-3 py-2 text-text-secondary">{d.page_count || 0}/{d.sheet_count || 0}</td>
                 <td className="px-3 py-2"><StatusBadge s={d.parse_status} progress={d.parse_progress} /></td>
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap gap-2">
-                    <button onClick={() => openResult(d.id)} className="text-sky-600 hover:underline">查看</button>
-                    {(d.parse_status === 'failed' || d.parse_status === 'pending') && <button onClick={() => onParse(d.id)} className="text-amber-600 hover:underline">重试</button>}
-                    <button onClick={() => openOriginal(d.file_url)} className="text-slate-500 hover:underline">原件</button>
-                    <button onClick={() => onDelete(d.id)} className="text-rose-600 hover:underline">删除</button>
+                    <button onClick={() => openResult(d.id)} className="text-primary hover:underline">查看</button>
+                    {(d.parse_status === 'failed' || d.parse_status === 'pending') && <button onClick={() => onParse(d.id)} className="text-warning hover:underline">重试</button>}
+                    <button onClick={() => openOriginal(d.file_url)} className="text-text-secondary hover:underline">原件</button>
+                    <button onClick={() => onDelete(d.id)} className="text-danger hover:underline">删除</button>
                   </div>
-                  {d.parse_status === 'failed' && <div className="mt-1 max-w-xs truncate text-xs text-rose-500" title={d.parse_error}>{d.parse_error}</div>}
+                  {d.parse_status === 'failed' && <div className="mt-1 max-w-xs truncate text-xs text-danger"title={d.parse_error}>{d.parse_error}</div>}
                 </td>
               </tr>
             ))}
-            {!docs.length && <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">暂无资料</td></tr>}
+            {!docs.length && <tr><td colSpan={7} className="px-4 py-8 text-center text-text-muted">暂无资料</td></tr>}
           </tbody>
         </table>
       </div>
 
       {result && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setResult(null)}>
-          <div className="max-h-[90vh] w-full max-w-4xl overflow-auto rounded-xl bg-white p-5 dark:bg-slate-800" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"onClick={() => setResult(null)}>
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-auto rounded-xl bg-card p-5"onClick={(e) => e.stopPropagation()}>
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100">{resultDoc?.file_name} · 解析结果</h3>
-              <button onClick={() => setResult(null)} className="text-slate-400 hover:text-slate-600">关闭</button>
+              <h3 className="font-semibold text-text">{resultDoc?.file_name} · 解析结果</h3>
+              <button onClick={() => setResult(null)} className="text-text-muted hover:text-text-secondary">关闭</button>
             </div>
             {result.kind === 'excel' && (
               <div>
                 <div className="mb-2 flex gap-2">
                   {result.sheets.map((s: any, i: number) => (
-                    <button key={i} onClick={() => setActiveSheet(i)} className={`rounded px-3 py-1 text-sm ${i === activeSheet ? 'bg-sky-600 text-white' : 'bg-slate-100 dark:bg-slate-700'}`}>{s.name}</button>
+                    <button key={i} onClick={() => setActiveSheet(i)} className={`rounded px-3 py-1 text-sm ${i === activeSheet ? 'bg-primary text-white' : 'bg-surface2 '}`}>{s.name}</button>
                   ))}
                 </div>
-                <div className="overflow-auto text-sm [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-slate-300 [&_th]:border [&_th]:border-slate-300 [&_th]:bg-slate-100 [&_td]:p-1 [&_th]:p-1 dark:[&_td]:border-slate-600 dark:[&_th]:bg-slate-700" dangerouslySetInnerHTML={{ __html: result.sheets[activeSheet]?.html || '' }} />
+                <div className="overflow-auto text-sm [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_th]:border [&_th]:border-border [&_th]:bg-surface2 [&_td]:p-1 [&_th]:p-1"dangerouslySetInnerHTML={{ __html: result.sheets[activeSheet]?.html || '' }} />
               </div>
             )}
             {result.kind === 'word' && (
-              <div className="overflow-auto text-sm [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-slate-300 [&_th]:border [&_th]:border-slate-300 [&_th]:bg-slate-100 [&_td]:p-1 [&_th]:p-1 dark:[&_td]:border-slate-600 dark:[&_th]:bg-slate-700" dangerouslySetInnerHTML={{ __html: result.html || '' }} />
+              <div className="overflow-auto text-sm [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_th]:border [&_th]:border-border [&_th]:bg-surface2 [&_td]:p-1 [&_th]:p-1"dangerouslySetInnerHTML={{ __html: result.html || '' }} />
             )}
             {result.kind === 'ocr' && (
               <div className="space-y-6">
                 {result.pages.map((p: any) => (
                   <div key={p.pageNo}>
-                    <div className="mb-1 text-xs text-slate-500">第 {p.pageNo} 页</div>
+                    <div className="mb-1 text-xs text-text-secondary">第 {p.pageNo} 页</div>
                     <div className="grid gap-3 md:grid-cols-2">
-                      <div className="relative overflow-hidden rounded border border-slate-200 dark:border-slate-600">
+                      <div className="relative overflow-hidden rounded border border-border">
                         {p.localImage
-                          ? <img src={`/api/audit/documents/${resultDoc.id}/asset?path=${encodeURIComponent(p.localImage)}`} alt={`page ${p.pageNo}`} className="w-full" />
+                          ? <img src={`/api/audit/documents/${resultDoc.id}/asset?path=${encodeURIComponent(p.localImage)}`} alt={`page ${p.pageNo}`} className="w-full"/>
                           : p.inputImage
-                            ? <img src={p.inputImage} alt={`page ${p.pageNo}`} className="w-full" />
-                            : <div className="p-4 text-xs text-slate-400">无底图（未配置 OCR_KEY 或未返回）</div>}
+                            ? <img src={p.inputImage} alt={`page ${p.pageNo}`} className="w-full"/>
+                            : <div className="p-4 text-xs text-text-muted">无底图（未配置 OCR_KEY 或未返回）</div>}
                       </div>
                       <div className="overflow-auto text-sm">
-                        <div className="mb-1 font-medium text-slate-600 dark:text-slate-300">识别内容</div>
-                        <pre className="whitespace-pre-wrap text-xs text-slate-700 dark:text-slate-200">{p.markdown || '（无）'}</pre>
+                        <div className="mb-1 font-medium text-text-secondary">识别内容</div>
+                        <pre className="whitespace-pre-wrap text-xs text-text-secondary">{p.markdown || '（无）'}</pre>
                         {p.elements?.length > 0 && (
                           <ul className="mt-2 space-y-1">
                             {p.elements.filter((e: any) => e.content).slice(0, 12).map((e: any, i: number) => (
-                              <li key={i} className="text-xs"><span className="text-sky-600">{e.elementType}</span>：{String(e.content).slice(0, 120)}</li>
+                              <li key={i} className="text-xs"><span className="text-primary">{e.elementType}</span>：{String(e.content).slice(0, 120)}</li>
                             ))}
                           </ul>
                         )}

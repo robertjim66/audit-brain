@@ -179,29 +179,29 @@ export default function ChatPage() {
 
   if (!currentProjectId) {
     return (
-      <div className="mx-auto max-w-2xl rounded-xl border border-slate-200 bg-white p-8 text-center dark:border-slate-700 dark:bg-slate-800">
-        <p className="text-slate-600 dark:text-slate-300">请先选择一个审计项目，再使用智能问答。</p>
-        <Link href="/projects" className="mt-3 inline-block rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white">前往项目</Link>
+      <div className="mx-auto max-w-2xl rounded-xl border border-border bg-card p-8 text-center">
+        <p className="text-text-secondary">请先选择一个审计项目，再使用智能问答。</p>
+        <Link href="/projects"className="mt-3 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white">前往项目</Link>
       </div>
     );
   }
 
   return (
-    <div className="flex h-[calc(100vh-9rem)] overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+    <div className="flex h-[calc(100vh-9rem)] overflow-hidden rounded-xl border border-border bg-card">
       {/* 会话侧栏 */}
-      <aside className="flex w-60 flex-col border-r border-slate-200 dark:border-slate-700">
+      <aside className="flex w-60 flex-col border-r border-border">
         <div className="flex items-center justify-between p-3">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">会话</span>
-          <button onClick={newSession} className="rounded-lg bg-sky-600 px-2 py-1 text-xs text-white">＋ 新会话</button>
+          <span className="text-sm font-semibold text-text-secondary">会话</span>
+          <button onClick={newSession} className="rounded-lg bg-primary px-2 py-1 text-xs text-white">＋ 新会话</button>
         </div>
         <div className="flex-1 space-y-1 overflow-auto px-2 pb-2">
           {sessions.map((s) => (
-            <div key={s.id} onClick={() => select(s.id)} className={`group flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm ${activeId === s.id ? 'bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-200' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700/40'}`}>
+            <div key={s.id} onClick={() => select(s.id)} className={`group flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm ${activeId === s.id ? 'bg-primary/10 text-primary ' : 'text-text-secondary hover:bg-surface2 '}`}>
               <span className="truncate">{s.first_question || s.title || '新会话'}</span>
-              <button onClick={(e) => { e.stopPropagation(); removeSession(s.id); }} className="ml-2 hidden text-xs text-slate-400 group-hover:block hover:text-rose-500">删</button>
+              <button onClick={(e) => { e.stopPropagation(); removeSession(s.id); }} className="ml-2 hidden text-xs text-text-muted group-hover:block hover:text-danger">删</button>
             </div>
           ))}
-          {!sessions.length && <p className="px-3 py-4 text-xs text-slate-400">暂无会话，点击「新会话」开始</p>}
+          {!sessions.length && <p className="px-3 py-4 text-xs text-text-muted">暂无会话，点击「新会话」开始</p>}
         </div>
       </aside>
 
@@ -213,47 +213,47 @@ export default function ChatPage() {
           ))}
           {live && (
             <div className="flex gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-600 text-xs font-medium text-white">AI</div>
-              <div className="flex-1 rounded-xl bg-slate-50 p-3 dark:bg-slate-700/40">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-medium text-white">AI</div>
+              <div className="flex-1 rounded-xl bg-surface2 p-3">
                 {!live.hasAnswer && (
                   <div className="mb-2 space-y-1">
                     {live.steps.map((s) => (
-                      <div key={s.key} className="flex items-center gap-2 text-xs text-slate-500">
-                        <span className={`inline-block h-2 w-2 rounded-full ${s.status === 'running' ? 'animate-pulse bg-sky-500' : s.status === 'ok' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                      <div key={s.key} className="flex items-center gap-2 text-xs text-text-secondary">
+                        <span className={`inline-block h-2 w-2 rounded-full ${s.status === 'running' ? 'animate-pulse bg-primary' : s.status === 'ok' ? 'bg-success' : 'bg-danger'}`} />
                         <span>{s.text}</span>
-                        {s.extra && <span className="text-slate-400">{s.extra}</span>}
+                        {s.extra && <span className="text-text-muted">{s.extra}</span>}
                       </div>
                     ))}
                   </div>
                 )}
                 {live.streamText && (
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <div className="prose prose-sm max-w-none">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{tidyMarkdown(live.streamText)}</ReactMarkdown>
                   </div>
                 )}
-                {!live.hasAnswer && !live.steps.length && <span className="text-sm text-slate-400">正在启动取证…</span>}
+                {!live.hasAnswer && !live.steps.length && <span className="text-sm text-text-muted">正在启动取证…</span>}
               </div>
             </div>
           )}
           {!messages.length && !live && (
-            <div className="flex h-full items-center justify-center text-center text-sm text-slate-400">
+            <div className="flex h-full items-center justify-center text-center text-sm text-text-muted">
               <div>
                 <p>向审计助手提问，例如：</p>
-                <p className="mt-1 text-slate-500">「对比中标清单与结算书，找出工程量差异较大的分部分项」</p>
+                <p className="mt-1 text-text-secondary">「对比中标清单与结算书，找出工程量差异较大的分部分项」</p>
               </div>
             </div>
           )}
         </div>
-        <div className="flex items-end gap-2 border-t border-slate-200 p-3 dark:border-slate-700">
+        <div className="flex items-end gap-2 border-t border-border p-3">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
             rows={2}
             placeholder="输入问题，Enter 发送，Shift+Enter 换行"
-            className="flex-1 resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700"
+            className="flex-1 resize-none rounded-lg border border-border bg-card px-3 py-2 text-sm"
           />
-          <button onClick={send} disabled={busy || !activeId} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+          <button onClick={send} disabled={busy || !activeId} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
             {busy ? '回答中…' : '发送'}
           </button>
         </div>
@@ -278,38 +278,38 @@ function MessageBubble({ msg }: { msg: Msg }) {
   if (msg.role === 'user') {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[80%] rounded-xl bg-sky-600 px-3 py-2 text-sm text-white">{msg.content}</div>
+        <div className="max-w-[80%] rounded-xl bg-primary px-3 py-2 text-sm text-white">{msg.content}</div>
       </div>
     );
   }
   return (
     <div className="flex gap-3">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-600 text-xs font-medium text-white">AI</div>
-      <div className="flex-1 rounded-xl bg-slate-50 p-3 dark:bg-slate-700/40">
-        <div className="prose prose-sm max-w-none dark:prose-invert">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-medium text-white">AI</div>
+      <div className="flex-1 rounded-xl bg-surface2 p-3">
+        <div className="prose prose-sm max-w-none">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{tidyMarkdown(msg.content)}</ReactMarkdown>
         </div>
         {msg.meta?.citations && msg.meta.citations.length > 0 && (
-          <div className="mt-3 border-t border-slate-200 pt-2 dark:border-slate-600">
-            <div className="mb-1 text-xs font-medium text-slate-500">证据溯源（{msg.meta.citations.length}）</div>
+          <div className="mt-3 border-t border-border pt-2">
+            <div className="mb-1 text-xs font-medium text-text-secondary">证据溯源（{msg.meta.citations.length}）</div>
             <div className="space-y-1">
               {msg.meta.citations.map((c: any) => (
-                <div key={c.eid} className="rounded-lg bg-white px-2 py-1 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                  <span className="font-medium text-sky-600">〔{c.eid}〕</span> {c.fileName}
+                <div key={c.eid} className="rounded-lg bg-card px-2 py-1 text-xs text-text-secondary">
+                  <span className="font-medium text-primary">〔{c.eid}〕</span> {c.fileName}
                   {c.pageNo ? ` · 第${c.pageNo}页` : ''}{c.sheetName ? ` · ${c.sheetName}` : ''}
-                  {c.snippet ? <span className="text-slate-400"> — {String(c.snippet).slice(0, 80)}</span> : ''}
+                  {c.snippet ? <span className="text-text-muted"> — {String(c.snippet).slice(0, 80)}</span> : ''}
                 </div>
               ))}
             </div>
           </div>
         )}
         {msg.meta?.missing && msg.meta.missing.length > 0 && (
-          <div className="mt-2 rounded-lg bg-amber-50 px-2 py-1 text-xs text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+          <div className="mt-2 rounded-lg bg-warning/10 px-2 py-1 text-xs text-warning">
             需补充材料：{msg.meta.missing.join('；')}
           </div>
         )}
         {msg.meta?.model && (
-          <div className="mt-2 text-[11px] text-slate-400">模型 {msg.meta.model} · {msg.meta.rounds} 轮取证</div>
+          <div className="mt-2 text-[11px] text-text-muted">模型 {msg.meta.model} · {msg.meta.rounds} 轮取证</div>
         )}
       </div>
     </div>

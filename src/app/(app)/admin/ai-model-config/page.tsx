@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/apiClient';
 import { Button, Card, Badge, Spinner, Modal, Input, Textarea } from '@/components/ui/primitives';
+import { IconChevronUp, IconChevronDown, IconCheck, IconClose } from '@/components/ui/icons';
 
 type ModelCfg = {
   key: string;
@@ -159,7 +160,7 @@ export default function AIModelConfigPage() {
       });
       setCfg(r.config);
       setDrafts({});
-      setMsg('✅ 模型链配置已保存');
+      setMsg('模型链配置已保存');
     } catch (e: any) { setMsg('保存失败：' + e.message); }
     finally { setSaving(false); }
   }
@@ -177,7 +178,7 @@ export default function AIModelConfigPage() {
   }
 
   async function reload() {
-    try { await api.post('/audit/ai-config/reload', {}); setMsg('✅ 已清缓存重载配置'); await load(); }
+    try { await api.post('/audit/ai-config/reload', {}); setMsg('已清缓存重载配置'); await load(); }
     catch (e: any) { setMsg('重载失败：' + e.message); }
   }
 
@@ -191,8 +192,8 @@ export default function AIModelConfigPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-text">模型配置</h1>
-          <p className="text-sm text-text-muted">审计大脑模型链：设置主模型（链首）、启用/禁用与降级优先级、超时与自定义密钥。</p>
+          <h1 className="text-lg font-semibold leading-tight tracking-tight text-text">模型配置</h1>
+          <p className="mt-1 text-sm leading-relaxed text-text-secondary">审计大脑模型链：设置主模型（链首）、启用/禁用与降级优先级、超时与自定义密钥。</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={openAdd}>+ 自定义模型</Button>
@@ -225,7 +226,16 @@ export default function AIModelConfigPage() {
             <Card key={m.key} className="p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="text-lg">{m.inChain ? '🔗' : '⭕'}</div>
+                  <span
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${
+                      m.inChain
+                        ? 'border-primary/25 bg-primary/10 text-primary'
+                        : 'border-border bg-surface2 text-text-muted'
+                    }`}
+                    title={m.inChain ? '已在故障转移链中' : '未加入故障转移链'}
+                  >
+                    {m.inChain ? <IconCheck size={15} /> : <IconClose size={15} />}
+                  </span>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-text truncate">{m.label}</span>
@@ -238,8 +248,12 @@ export default function AIModelConfigPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button size="sm" variant="ghost" onClick={() => move(i, -1)} disabled={i === 0} title="上移（提升降级优先级）">↑</Button>
-                  <Button size="sm" variant="ghost" onClick={() => move(i, 1)} disabled={i === cfg.models.length - 1} title="下移">↓</Button>
+                  <Button size="sm" variant="ghost" onClick={() => move(i, -1)} disabled={i === 0} title="上移（提升降级优先级）">
+                    <IconChevronUp size={15} />
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => move(i, 1)} disabled={i === cfg.models.length - 1} title="下移">
+                    <IconChevronDown size={15} />
+                  </Button>
                   <Button size="sm" variant="secondary" onClick={() => setActiveKey(m.key)} disabled={!m.enabled} title="设为主模型">设为主</Button>
                   {m.isCustom && (
                     <Button size="sm" variant="ghost" className="text-danger" onClick={() => removeModel(m)} disabled={m.key === activeKey} title={m.key === activeKey ? '主模型不可删除' : '删除该自定义模型'}>删除</Button>

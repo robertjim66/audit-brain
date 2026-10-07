@@ -105,8 +105,8 @@ export default function RolesAdminPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-text">角色管理</h1>
-          <p className="text-sm text-text-muted">定义角色及其菜单/按钮权限。预置角色 ADMIN / AUDITOR 不可删除。</p>
+          <h1 className="text-lg font-semibold leading-tight tracking-tight text-text">角色管理</h1>
+          <p className="mt-1 text-sm leading-relaxed text-text-secondary">定义角色及其菜单/按钮权限。预置角色 ADMIN / AUDITOR 不可删除。</p>
         </div>
         <Button onClick={() => setCreateOpen(true)}>+ 新增角色</Button>
       </div>
