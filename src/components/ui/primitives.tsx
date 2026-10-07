@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { IconClose, IconTrendDown, IconTrendUp, type IconProps } from './icons';
 
 // ============ Button ============
@@ -150,6 +151,9 @@ export function Modal({
   footer?: React.ReactNode;
   width?: string;
 }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -157,8 +161,12 @@ export function Modal({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
-  return (
+  // portal 到 body：顶栏带 backdrop-blur，backdrop-filter 会让其内部所有
+  // fixed 元素改为相对顶栏定位（弹窗会被"居中"到 56px 高的顶栏上、上半截飞出屏幕），
+  // 挂到 body 才能真正相对视口定位。mounted 门闩避免 SSR hydration 不匹配。
+  if (!open || !mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-black/45 backdrop-blur-[2px] animate-fade-in"
@@ -182,12 +190,14 @@ export function Modal({
             </button>
           </div>
         )}
-        <div className="px-5 py-4 overflow-y-auto">{children}</div>
+        {/* flex-1 + min-h-0：内容区收缩并内部滚动，footer 永远可见（否则长内容会把 footer 挤出面板被裁掉） */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
         {footer && (
           <div className="px-5 py-3 border-t border-border bg-surface2/60 flex justify-end gap-2">{footer}</div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
