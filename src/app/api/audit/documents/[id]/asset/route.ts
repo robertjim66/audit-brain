@@ -1,10 +1,8 @@
 import { requireAuth } from '@/lib/auth';
 import { withHandler, ApiError } from '@/lib/http';
-import db from '@/lib/db';
 import { assertDocument } from '@/lib/audit/guard';
-import fs from 'fs';
+import storage from '@/lib/storage';
 import path from 'path';
-import { resultDir } from '@/lib/parse/parseService';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,13 +17,12 @@ export const GET = withHandler(async (req, ctx) => {
   const auth = await requireAuth(req);
   await assertDocument(ctx.params.id, auth.userId);
   const rel = String(req.nextUrl.searchParams.get('path') || '');
-  if (!rel || rel.includes('\0')) throw new ApiError(400, '非法路径');
-  const base = resultDir(ctx.params.id);
-  const target = path.normalize(path.join(base, rel));
-  if (!target.startsWith(base) || !fs.existsSync(target) || !fs.statSync(target).isFile()) {
-    throw new ApiError(404, '资源不存在');
-  }
-  const ext = path.extname(target).toLowerCase();
-  const data = fs.readFileSync(target);
-  return new Response(data, { headers: { 'Content-Type': MIME[ext] || 'application/octet-stream' } });
+  if (!rel || rel.includes('\0') || rel.includes('..')) throw new ApiError(400, '非法路径');
+
+  // 解析产物统一存放于 audit-parse/{documentId}/ 前缀下
+  const data = await storage.get(`audit-parse/${ctx.params.id}/${rel.replace(/^[/\\]+/, '')}`);
+  if (!data) throw new ApiError(404, '资源不存在');
+
+  const ext = path.extname(rel).toLowerCase();
+  return new Response(new Uint8Array(data), { headers: { 'Content-Type': MIME[ext] || 'application/octet-stream' } });
 });

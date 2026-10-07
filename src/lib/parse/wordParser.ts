@@ -6,12 +6,12 @@ import mammoth from 'mammoth';
 
 const TITLE_RE = /^\s*(第[一二三四五六七八九十百千0-9]+[章节条部分]|[一二三四五六七八九十]+、|[（(][一二三四五六七八九十0-9]+[)）]|\d+(\.\d+){0,3}\s+\S{2,30})/;
 
-export async function parseWord(filePath: string): Promise<{
+export async function parseWord(data: Buffer): Promise<{
   kind: 'word'; elements: any[]; markdownText: string; html: string; warnings: string[];
 }> {
   const [textRes, htmlRes] = await Promise.all([
-    mammoth.extractRawText({ path: filePath }),
-    mammoth.convertToHtml({ path: filePath }),
+    mammoth.extractRawText({ buffer: data }),
+    mammoth.convertToHtml({ buffer: data }),
   ]);
   const text = textRes.value || '';
   const html = htmlRes.value || '';

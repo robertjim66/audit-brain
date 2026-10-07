@@ -2,15 +2,12 @@ import { requireAuth } from '@/lib/auth';
 import { withHandler, ApiError } from '@/lib/http';
 import db from '@/lib/db';
 import { assertDocument } from '@/lib/audit/guard';
-import fs from 'fs';
+import storage from '@/lib/storage';
 import path from 'path';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const ROOT = path.join(process.cwd(), 'public', 'uploads');
-// 解析产物目录与原件同级，同样可能含敏感全文，必须一并做归属校验
-const PARSE_ROOT = path.join(ROOT, 'audit-parse');
 const MIME: Record<string, string> = {
   '.pdf': 'application/pdf', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -20,33 +17,34 @@ const MIME: Record<string, string> = {
 };
 
 /**
- * 把请求路径映射回它所属的资料，用于做归属校验。
- * 原件走 file_path 精确匹配；解析产物走 audit-parse/{documentId}/ 前缀。
+ * 把请求的相对路径（即存储键）映射回它所属的资料，用于做归属校验。
+ * 原件按 file_url / file_path 匹配；解析产物走 audit-parse/{documentId}/ 前缀。
  */
-async function resolveOwnerDocument(target: string, relPath: string): Promise<string> {
-  const [byPath]: any = await db.query('SELECT id FROM audit_document WHERE file_path=? AND del_flag=0 LIMIT 1', [target]);
-  if (byPath.length) return String(byPath[0].id);
+async function resolveOwnerDocument(relKey: string): Promise<string> {
+  const [rows]: any = await db.query(
+    `SELECT id FROM audit_document
+      WHERE del_flag=0 AND (file_url=? OR file_path=? OR file_url=?)
+      LIMIT 1`,
+    ['/api/files/' + relKey, relKey, '/uploads/' + relKey]
+  );
+  if (rows.length) return String(rows[0].id);
 
-  const inParse = path.relative(PARSE_ROOT, target);
-  if (inParse && !inParse.startsWith('..') && !path.isAbsolute(inParse)) {
-    const docId = inParse.split(path.sep)[0];
-    if (/^\d+$/.test(docId)) return docId;
-  }
+  const parts = relKey.split('/');
+  if (parts[0] === 'audit-parse' && /^\d+$/.test(parts[1] || '')) return parts[1];
   throw new ApiError(404, '资源不存在');
 }
 
-// 上传原件的通用文件服务（兼顾生产 build 后 public 快照不含运行时新增文件的情况）
+// 上传原件的通用文件服务（同样承接历史 /uploads/* 的 rewrite 转发）
 export const GET = withHandler(async (req, ctx) => {
   const auth = await requireAuth(req);
-  const rel = ctx.params.path as string[];
-  const target = path.normalize(path.join(ROOT, ...rel));
-  if (!target.startsWith(ROOT) || !fs.existsSync(target) || !fs.statSync(target).isFile()) {
-    throw new ApiError(404, '资源不存在');
-  }
-  const docId = await resolveOwnerDocument(target, rel.join('/'));
+  const relKey = (ctx.params.path as string[]).join('/');
+  const docId = await resolveOwnerDocument(relKey);
   await assertDocument(docId, auth.userId);
 
-  const ext = path.extname(target).toLowerCase();
-  const data = fs.readFileSync(target);
-  return new Response(data, { headers: { 'Content-Type': MIME[ext] || 'application/octet-stream' } });
+  const data = await storage.get(relKey);
+  if (!data) throw new ApiError(404, '资源不存在');
+
+  const ext = path.extname(relKey).toLowerCase();
+  // 转成纯 Uint8Array，避免 Node Buffer 泛型与 BodyInit 类型不兼容
+  return new Response(new Uint8Array(data), { headers: { 'Content-Type': MIME[ext] || 'application/octet-stream' } });
 });

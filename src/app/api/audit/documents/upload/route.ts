@@ -5,14 +5,13 @@ import snowflake from '@/lib/snowflake';
 import { assertProject } from '@/lib/audit/guard';
 import { enqueueParse } from '@/lib/parse/parseQueue';
 import { invalidateProject } from '@/lib/audit/agent/projectStore';
-import fs from 'fs';
+import storage from '@/lib/storage';
 import path from 'path';
 import crypto from 'crypto';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const UPLOAD_ROOT = path.join(process.cwd(), 'public', 'uploads');
 const ALLOW_EXT: Record<string, string> = {
   '.pdf': 'application/pdf',
   '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -25,18 +24,10 @@ const ALLOW_EXT: Record<string, string> = {
   '.gif': 'image/gif',
 };
 
+// 存储键按 YYYY/MM/DD 分层（统一用 / 分隔，作为 URL 与 DB key 均适用）
 function dateDir(): string {
   const now = new Date();
-  return path.join(
-    String(now.getFullYear()),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0')
-  );
-}
-function fileUrlOf(filePath: string): string {
-  const rel = path.relative(UPLOAD_ROOT, filePath).split(path.sep).join('/');
-  // 统一存鉴权路径；next.config 的 beforeFiles rewrite 会把旧的 /uploads/* 也转到 /api/files
-  return '/api/files/' + rel;
+  return `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
 }
 function inferDocType(fileName: string, hint?: string | null): string {
   const allow = ['pdf_text', 'pdf_mixed', 'pdf_scan', 'excel', 'word', 'photo', 'other'];
@@ -82,16 +73,16 @@ export const POST = withHandler(async (req) => {
   const created: any[] = [];
   for (const file of files.slice(0, 20)) {
     const id = snowflake.nextId();
-    const dir = path.join(UPLOAD_ROOT, dateDir());
-    fs.mkdirSync(dir, { recursive: true });
     const ext = path.extname(file.name || '').toLowerCase();
     if (!ALLOW_EXT[ext]) throw new ApiError(400, `不支持的文件类型：${ext}`);
     const fname = crypto.randomBytes(16).toString('hex') + ext;
-    const fp = path.join(dir, fname);
+    // 存储键即相对路径；local 驱动落到 public/uploads，db 驱动落到 audit_document_blob
+    const key = `${dateDir()}/${fname}`;
     const buf = Buffer.from(await file.arrayBuffer());
-    fs.writeFileSync(fp, buf);
+    await storage.put(key, buf, { contentType: file.type || ALLOW_EXT[ext], documentId: id });
 
-    const url = fileUrlOf(fp);
+    // file_url 一律走带鉴权的 /api/files/*；file_path 保存存储键（相对路径）
+    const url = '/api/files/' + key;
     const dt = inferDocType(file.name, docType);
     const biz = inferBizCategory(file.name, bizCategory);
     await db.query(
@@ -99,7 +90,7 @@ export const POST = withHandler(async (req) => {
         (id, project_id, file_name, file_url, file_path, file_size, mime_type, file_ext,
          doc_type, biz_category, parse_status, parse_progress, created_by, updated_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?)`,
-      [id, finalProjectId, file.name, url, fp, file.size, file.type || ALLOW_EXT[ext],
+      [id, finalProjectId, file.name, url, key, file.size, file.type || ALLOW_EXT[ext],
        ext, dt, biz, auth.userId, auth.userId]
     );
     const [rows]: any = await db.query('SELECT * FROM audit_document WHERE id=?', [id]);

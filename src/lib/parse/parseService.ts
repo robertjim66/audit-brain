@@ -1,46 +1,38 @@
 /**
  * 审计资料解析调度服务
  * 按文件类型分发：Excel → 本地 xlsx；Word(.docx) → 本地 mammoth；PDF/图片 → PaddleOCR-VL 在线 API
- * 结果落盘 public/uploads/audit-parse/{documentId}/，要素（含证据锚点）写入 audit_element
+ * 结果经存储适配层落库/落盘（audit-parse/{documentId}/），要素（含证据锚点）写入 audit_element
  */
-import fs from 'fs';
 import path from 'path';
 import db from '../db';
 import snowflake from '../snowflake';
+import storage, { keyFromFileUrl } from '../storage';
 import { parseExcel } from './excelParser';
 import { parseWord } from './wordParser';
 import { parseOcr } from './ocrParser';
 import { PaddleOcrError } from './paddleOcrClient';
 import { invalidateProject } from '../audit/agent/projectStore';
 
-const UPLOAD_ROOT = path.join(process.cwd(), 'public', 'uploads');
-const DATA_ROOT = path.join(UPLOAD_ROOT, 'audit-parse');
-
 const EXCEL_EXTS = ['.xlsx', '.xls'];
 const WORD_EXTS = ['.docx'];
 const OCR_EXTS = ['.pdf', '.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tif', '.tiff'];
 const IMAGE_EXTS = ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tif', '.tiff'];
 
-export function resultDir(documentId: string | number): string {
-  return path.join(DATA_ROOT, String(documentId));
+export async function loadResult(documentId: string | number): Promise<any | null> {
+  const buf = await storage.get(`audit-parse/${documentId}/result.json`);
+  if (!buf) return null;
+  return JSON.parse(buf.toString('utf8'));
 }
 
-export function loadResult(documentId: string | number): any | null {
-  const file = path.join(resultDir(documentId), 'result.json');
-  if (!fs.existsSync(file)) return null;
-  return JSON.parse(fs.readFileSync(file, 'utf8'));
-}
-
-function resolveLocalPath(doc: any): string | null {
-  if (doc.file_path && fs.existsSync(doc.file_path)) return doc.file_path;
-  // file_url 新数据为 /api/files/*，历史数据为 /uploads/*，两种前缀都还原到磁盘路径
-  const url = String(doc.file_url || '');
-  const rel = url.replace(/^\/(api\/files|uploads)\//, '');
-  if (rel && rel !== url) {
-    const candidate = path.join(UPLOAD_ROOT, rel);
-    if (fs.existsSync(candidate)) return candidate;
-  }
-  return null;
+/** 还原资料原件的存储键：新数据优先取 file_url；历史数据回退到 file_path（可能是绝对路径） */
+function resolveSourceKey(doc: any): string | null {
+  const fromUrl = keyFromFileUrl(doc.file_url);
+  if (fromUrl) return fromUrl;
+  const normalized = String(doc.file_path || '').replace(/\\/g, '/');
+  if (!normalized) return null;
+  const marker = 'public/uploads/';
+  const idx = normalized.indexOf(marker);
+  return idx >= 0 ? normalized.slice(idx + marker.length) : normalized.replace(/^\/+/, '');
 }
 
 export function extOf(fileName: string): string {
@@ -60,29 +52,26 @@ async function _runParse(documentId: string | number, operatorUserId?: string): 
   const doc = rows[0];
   if (!doc) return { ok: false, error: '资料不存在' };
 
-  const dir = resultDir(documentId);
-  fs.mkdirSync(dir, { recursive: true });
-
   try {
     await db.query("UPDATE audit_document SET parse_status='processing', parse_progress=1, parse_error=NULL WHERE id=?", [documentId]);
 
-    const localPath = resolveLocalPath(doc);
-    if (!localPath) throw new Error('源文件在服务器上不存在，请重新上传');
+    const srcKey = resolveSourceKey(doc);
+    const source = srcKey ? await storage.get(srcKey) : null;
+    if (!source) throw new Error('源文件在服务器上不存在，请重新上传');
     const ext = extOf(doc.file_name);
 
     let parsed: any;
     let jobId: string | null = null;
 
     if (EXCEL_EXTS.includes(ext)) {
-      parsed = parseExcel(localPath);
+      parsed = parseExcel(source);
     } else if (WORD_EXTS.includes(ext)) {
-      parsed = await parseWord(localPath);
+      parsed = await parseWord(source);
     } else if (OCR_EXTS.includes(ext)) {
       const r = await parseOcr({
-        filePath: localPath,
+        buffer: source,
         fileName: doc.file_name,
         mimeType: doc.mime_type,
-        assetDir: dir,
         onProgress: async (pct) => {
           await db.query('UPDATE audit_document SET parse_progress=? WHERE id=?', [pct, documentId]).catch(() => {});
         },
@@ -103,8 +92,12 @@ async function _runParse(documentId: string | number, operatorUserId?: string): 
       ocrJobId: jobId,
       parser: parserLite,
     };
-    fs.writeFileSync(path.join(dir, 'result.json'), JSON.stringify(stored), 'utf8');
-    fs.writeFileSync(path.join(dir, 'content.md'), parsed.markdownText || '', 'utf8');
+    await storage.put(`audit-parse/${documentId}/result.json`, Buffer.from(JSON.stringify(stored)), {
+      contentType: 'application/json', documentId,
+    });
+    await storage.put(`audit-parse/${documentId}/content.md`, Buffer.from(parsed.markdownText || ''), {
+      contentType: 'text/markdown; charset=utf-8', documentId,
+    });
 
     let elements: any[] = Array.isArray(parsed.elements) ? parsed.elements : [];
     if (parsed.kind === 'ocr') {

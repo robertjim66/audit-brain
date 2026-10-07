@@ -15,8 +15,8 @@ function labelCn(t: string): string {
 }
 
 export async function parseOcr(opts: {
-  filePath: string; fileName: string; mimeType: string;
-  assetDir: string; onProgress?: (pct: number) => void;
+  buffer: Buffer; fileName: string; mimeType: string;
+  onProgress?: (pct: number) => void;
 }): Promise<{ result: any; jobId: string }> {
   const r = await runOcr(opts);
   const pages = (r.result.pages || []).map((pg: any) => ({

@@ -13,7 +13,7 @@ export const GET = withHandler(async (req, ctx) => {
   const [rows]: any = await db.query('SELECT * FROM audit_document WHERE id=? AND del_flag=0', [ctx.params.id]);
   if (rows.length === 0) throw new ApiError(404, '资料不存在');
   const doc = rows[0];
-  const stored = loadResult(ctx.params.id);
+  const stored = await loadResult(ctx.params.id);
   if (!stored) throw new ApiError(404, '解析结果不存在，请先解析', );
 
   const p: any = stored.parser || {};

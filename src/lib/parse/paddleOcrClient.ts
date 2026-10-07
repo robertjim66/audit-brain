@@ -2,8 +2,6 @@
  * PaddleOCR-VL 在线识别客户端
  * 端点：百度 AI Studio PaddleOCR-VL。无 OCR_KEY 时抛 PaddleOcrError，由上层标记解析失败。
  */
-import fs from 'fs';
-import path from 'path';
 
 export class PaddleOcrError extends Error {
   code?: string;
@@ -49,11 +47,12 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function createJob(filePath: string, fileName: string, mimeType: string): Promise<string> {
+async function createJob(data: Buffer, fileName: string, mimeType: string): Promise<string> {
   if (!process.env.OCR_KEY) {
     throw new PaddleOcrError('未配置 OCR_KEY，无法识别扫描件/PDF。请在 .env 配置 OCR_KEY（百度 AI Studio 访问令牌）后重试。');
   }
-  const blob = new Blob([fs.readFileSync(filePath)], { type: mimeType || 'application/octet-stream' });
+  // 转成纯 Uint8Array，避免 Node Buffer 泛型与 BlobPart 类型不兼容
+  const blob = new Blob([new Uint8Array(data)], { type: mimeType || 'application/octet-stream' });
   const form = new FormData();
   form.append('file', blob, fileName);
   form.append('model', OCR_MODEL);
@@ -184,11 +183,11 @@ function mapElementType(label: string): string {
 }
 
 export async function runOcr(opts: {
-  filePath: string; fileName: string; mimeType: string;
-  onProgress?: (pct: number) => void; assetDir: string;
+  buffer: Buffer; fileName: string; mimeType: string;
+  onProgress?: (pct: number) => void;
 }): Promise<{ jobId: string; result: any }> {
   const startedAt = Date.now();
-  const jobId = await createJob(opts.filePath, opts.fileName, opts.mimeType);
+  const jobId = await createJob(opts.buffer, opts.fileName, opts.mimeType);
   opts.onProgress?.(10);
 
   let status = 'processing';
@@ -211,8 +210,7 @@ export async function runOcr(opts: {
   const normalized = normalizeResult(raw);
   opts.onProgress?.(90);
 
-  // 固化底图到本地（PaddleOCR 返回的是临时 BOS 链接）
+  // 底图不落盘：PaddleOCR 返回的 BOS 链接只作展示，不持久化
   const pages = normalized.pages.map((pg) => ({ ...pg }));
-  void path;
   return { jobId, result: { kind: 'ocr', docType: 'pdf_mixed', numPages: normalized.numPages, jobId, pages } };
 }

@@ -43,11 +43,11 @@ function aoaToHtml(aoa: any[][], merges: any[]): string {
   return html;
 }
 
-export function parseExcel(filePath: string): {
+export function parseExcel(data: Buffer): {
   kind: 'excel'; sheetCount: number;
   sheets: any[]; elements: any[]; markdownText: string;
 } {
-  const wb = XLSX.readFile(filePath, { cellDates: true, cellNF: true, cellText: false });
+  const wb = XLSX.read(data, { type: 'buffer', cellDates: true, cellNF: true, cellText: false });
   const sheets: any[] = [];
   const elements: any[] = [];
   const mdParts: string[] = [];
