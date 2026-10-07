@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth, useTheme, useProject } from './Providers';
 import { Button } from '@/components/ui/primitives';
+import { GuideButton } from './UserGuide';
 import { api } from '@/lib/apiClient';
 import type { AuditProject } from '@/types';
 
@@ -130,6 +131,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
           <div className="flex items-center gap-3">
+            <GuideButton />
             <button onClick={toggleTheme} className="text-lg" title="切换深浅色">
               {theme === 'dark' ? '🌞' : '🌙'}
             </button>

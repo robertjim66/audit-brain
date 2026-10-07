@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useProject } from '@/components/layout/Providers';
 import { api, openProtectedFile } from '@/lib/apiClient';
+import { BIZ_CATEGORY_LABELS, DOC_TYPE_LABELS, PARSE_STATUS_LABELS } from '@/lib/constants';
 
 const BIZ = ['contract', 'boq', 'control_price', 'settlement', 'payment', 'visa', 'photo', 'invoice', 'other'];
 const DOCTYPE = ['pdf_text', 'pdf_mixed', 'pdf_scan', 'excel', 'word', 'photo', 'other'];
@@ -25,7 +26,7 @@ function StatusBadge({ s, progress }: { s: string; progress?: number }) {
   };
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${map[s] || ''}`}>
-      {s === 'processing' ? `解析中 ${progress || 0}%` : s}
+      {s === 'processing' ? `解析中 ${progress || 0}%` : (PARSE_STATUS_LABELS[s] || s)}
     </span>
   );
 }
@@ -138,14 +139,14 @@ export default function DocumentsPage() {
             <label className="mb-1 block text-xs text-slate-500">业务类别</label>
             <select value={cat} onChange={(e) => setCat(e.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700">
               <option value="">自动识别</option>
-              {BIZ.map((b) => <option key={b} value={b}>{b}</option>)}
+              {BIZ.map((b) => <option key={b} value={b}>{BIZ_CATEGORY_LABELS[b] || b}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-slate-500">文档类型</label>
             <select value={docType} onChange={(e) => setDocType(e.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700">
               <option value="">自动识别</option>
-              {DOCTYPE.map((d) => <option key={d} value={d}>{d}</option>)}
+              {DOCTYPE.map((d) => <option key={d} value={d}>{DOC_TYPE_LABELS[d] || d}</option>)}
             </select>
           </div>
           <div>
@@ -174,8 +175,8 @@ export default function DocumentsPage() {
             {docs.map((d) => (
               <tr key={d.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                 <td className="max-w-xs truncate px-4 py-2 text-slate-900 dark:text-slate-100">{d.file_name}</td>
-                <td className="px-3 py-2 text-slate-500">{d.biz_category}</td>
-                <td className="px-3 py-2 text-slate-500">{d.doc_type}</td>
+                <td className="px-3 py-2 text-slate-500" title={d.biz_category}>{BIZ_CATEGORY_LABELS[d.biz_category] || d.biz_category}</td>
+                <td className="px-3 py-2 text-slate-500" title={d.doc_type}>{DOC_TYPE_LABELS[d.doc_type] || d.doc_type}</td>
                 <td className="px-3 py-2 text-slate-500">{fmtSize(d.file_size)}</td>
                 <td className="px-3 py-2 text-slate-500">{d.page_count || 0}/{d.sheet_count || 0}</td>
                 <td className="px-3 py-2"><StatusBadge s={d.parse_status} progress={d.parse_progress} /></td>

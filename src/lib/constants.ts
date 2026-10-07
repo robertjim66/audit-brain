@@ -10,6 +10,16 @@ export const DOC_TYPES = [
   'pdf_text', 'pdf_mixed', 'pdf_scan', 'excel', 'word', 'photo', 'other',
 ] as const;
 
+export const DOC_TYPE_LABELS: Record<string, string> = {
+  pdf_text: '文字型 PDF',
+  pdf_mixed: '图文 PDF',
+  pdf_scan: '扫描件 PDF',
+  excel: 'Excel 表格',
+  word: 'Word 文档',
+  photo: '图片/照片',
+  other: '其他',
+};
+
 export const BIZ_CATEGORIES = [
   'contract', 'boq', 'control_price', 'settlement', 'payment', 'visa', 'photo', 'invoice', 'other',
 ] as const;
@@ -27,6 +37,13 @@ export const BIZ_CATEGORY_LABELS: Record<string, string> = {
 };
 
 export const PARSE_STATUS = ['pending', 'processing', 'done', 'failed'] as const;
+
+export const PARSE_STATUS_LABELS: Record<string, string> = {
+  pending: '待解析',
+  processing: '解析中',
+  done: '已解析',
+  failed: '解析失败',
+};
 
 export const PROJECT_STATUS = [
   { value: 0, label: '进行中' },
