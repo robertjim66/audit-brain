@@ -21,6 +21,9 @@ export const siteKeywords = [
   'AI 审计',
 ];
 
+/** 项目源码仓库：个人独立开发，对外公开可查 —— 作为"可验证"的一部分放在页面上 */
+export const repoUrl = 'https://github.com/robertjim66/audit-brain';
+
 /** 无需登录即可访问、允许被搜索引擎收录的公开路径 */
 export const PUBLIC_PATHS = ['/', '/login', '/privacy', '/terms'];
 

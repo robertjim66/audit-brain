@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getToken } from '@/lib/apiClient';
+import { repoUrl } from '@/lib/site';
 import {
   IconShieldCheck, IconClock, IconLock, IconDocuments, IconFileSpreadsheet,
   IconChat, IconFindings, IconDownload, IconArrowRight,
@@ -184,6 +185,14 @@ export default function Home() {
           <div className="flex items-center gap-5">
             <a href="#features" className="hidden text-sm text-text-secondary hover:text-text sm:block">功能</a>
             <a href="#flow" className="hidden text-sm text-text-secondary hover:text-text sm:block">怎么用</a>
+            <a
+              href={repoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-text-secondary transition-colors duration-150 hover:text-text"
+            >
+              GitHub
+            </a>
             <Link
               href="/login"
               className="rounded-lg bg-primary px-[18px] py-2 text-sm font-medium text-primary-fg transition-colors duration-150 hover:bg-primary-hover"
@@ -238,7 +247,7 @@ export default function Home() {
               </div>
             </Reveal>
             <Reveal enhanced={enhanced} delay={440}>
-              <p className="mt-6 text-xs text-white/60">无需信用卡 · 注册即用 · 数据保存在你自己的服务器</p>
+              <p className="mt-6 text-xs text-white/60">自托管部署 · 资料保存在你自己的服务器</p>
             </Reveal>
           </div>
 
@@ -251,6 +260,7 @@ export default function Home() {
                   <span className="h-2.5 w-2.5 rounded-full bg-border-strong" />
                   <span className="h-2.5 w-2.5 rounded-full bg-border-strong" />
                   <span className="ml-1.5 text-xs font-semibold text-text-secondary">疑点台账</span>
+                  <span className="num ml-auto rounded border border-border-strong px-1.5 py-[1px] text-[10px] text-text-muted">示意数据</span>
                 </div>
                 <div className="grid grid-cols-4 border-b border-border">
                   {[
@@ -400,15 +410,25 @@ export default function Home() {
               <IconArrowRight size={18} className="transition-transform duration-200 ease-smooth group-hover:translate-x-[3px]" />
             </Link>
           </div>
-          <p className="relative mt-4 text-xs text-white/60">点击后进入登录 / 注册页 · 注册即视为同意用户协议与隐私政策</p>
+          <p className="relative mt-5 text-sm text-white/80">
+            想先看一份样例成果，或聊聊你的项目：
+            <a href="mailto:hk15186498013@163.com" className="num underline decoration-white/40 underline-offset-4 transition-colors duration-150 hover:decoration-white">hk15186498013@163.com</a>
+          </p>
+          <p className="relative mt-3 text-xs text-white/60">点击上方按钮进入登录 / 注册页 · 注册即视为同意用户协议与隐私政策</p>
         </div>
       </section>
 
       {/* ============ Footer ============ */}
       <footer className="border-t border-border bg-card">
         <div className="mx-auto flex max-w-[1120px] flex-wrap items-center justify-between gap-4 px-6 py-8">
-          <span className="text-xs text-text-muted">审计智脑 AuditBrain · 面向建设工程审计的智能审读平台</span>
+          <div className="text-xs text-text-muted">
+            <p>审计智脑 AuditBrain · 面向建设工程审计的智能审读平台</p>
+            <p className="mt-1.5">
+              联系：<a href="mailto:hk15186498013@163.com" className="num text-text-secondary underline decoration-border-strong underline-offset-2 transition-colors duration-150 hover:text-primary">hk15186498013@163.com</a>
+            </p>
+          </div>
           <div className="flex gap-5 text-[13px]">
+            <a href={repoUrl} target="_blank" rel="noopener noreferrer" className="text-text-secondary hover:text-primary">GitHub</a>
             <Link href="/terms" className="text-text-secondary hover:text-primary">用户协议</Link>
             <Link href="/privacy" className="text-text-secondary hover:text-primary">隐私政策</Link>
             <Link href="/login" className="text-text-secondary hover:text-primary">登录</Link>
