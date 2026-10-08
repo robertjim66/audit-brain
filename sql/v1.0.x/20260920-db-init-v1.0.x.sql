@@ -1,3 +1,5 @@
+-- 源自 ai-smart-audit（https://github.com/xiangxiang088/ai-smart-audit，Apache License 2.0）
+-- 本文件基于上游同名脚本修改，改动说明见 README「来源与许可」一节
 /*
  Navicat Premium Data Transfer
 

@@ -1,3 +1,5 @@
+-- 源自 ai-smart-audit（https://github.com/xiangxiang088/ai-smart-audit，Apache License 2.0）
+-- 本文件基于上游同名脚本修改，改动说明见 README「来源与许可」一节
 -- ============================================================
 -- v1.1.x 审计 Agent 模型配置表（主模型 + 备用模型自动故障切换）
 -- 用户可在页面上决定当前使用哪个模型；apiKey/baseUrl 留空时回退 .env 的 ARK_API_KEY / ARK_BASE_URL

@@ -1,4 +1,12 @@
 /**
+ * 衍生文件：基于 ai-smart-audit（https://github.com/xiangxiang088/ai-smart-audit）
+ * 的 server/utils/snowflake.js 改写，原项目以 Apache License 2.0 授权。
+ *
+ * 修改说明：由 CommonJS 迁移为 ESM / TypeScript 实现，调整位分配与字符串返回。
+ * 原始版权与许可声明见仓库根目录 LICENSE 及 README「来源与许可」一节。
+ */
+
+/**
  * 雪花算法 ID 生成器（64 位分布式唯一 ID，参考经典 Snowflake 设计）
  * ID 结构（64 位）：0 - 41 位时间戳 - 5 位数据中心 - 5 位机器 - 12 位序列号
  * 返回字符串形式，避免 JS 大数精度丢失（雪花 ID 为 18-19 位数字）。

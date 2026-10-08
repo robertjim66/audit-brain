@@ -1,3 +1,11 @@
+/**
+ * 衍生文件：基于 ai-smart-audit（https://github.com/xiangxiang088/ai-smart-audit）
+ * 的 server/db.js 改写，原项目以 Apache License 2.0 授权。
+ *
+ * 修改说明：由 CommonJS 迁移为 ESM / TypeScript 实现，适配 Next.js 运行时。
+ * 原始版权与许可声明见仓库根目录 LICENSE 及 README「来源与许可」一节。
+ */
+
 import mysql from 'mysql2/promise';
 
 // 数据库配置 - 优先使用环境变量（Next.js 自动加载 .env）
