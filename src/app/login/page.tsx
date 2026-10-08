@@ -23,10 +23,16 @@ export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
+  const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // 注册前必须明确同意协议：未勾选不提交，也不调用接口
+    if (mode === 'register' && !agreed) {
+      toast.error('请先阅读并勾选同意《用户协议》与《隐私政策》');
+      return;
+    }
     setLoading(true);
     try {
       if (mode === 'login') {
@@ -150,15 +156,54 @@ export default function LoginPage() {
               />
             </Field>
             {mode === 'register' && (
-              <Field label="昵称" hint="选填，默认同用户名；会显示在处置记录中">
-                <Input
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  placeholder="如：李工"
-                />
-              </Field>
+              <>
+                <Field label="昵称" hint="选填，默认同用户名；会显示在处置记录中">
+                  <Input
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    placeholder="如：李工"
+                  />
+                </Field>
+
+                {/* 注册同意项：未勾选无法提交，两个协议均可新窗口打开边看边填 */}
+                <label className="flex cursor-pointer select-none items-start gap-2 pt-1">
+                  <input
+                    type="checkbox"
+                    checked={agreed}
+                    onChange={(e) => setAgreed(e.target.checked)}
+                    className="mt-[3px] h-3.5 w-3.5 shrink-0 cursor-pointer accent-primary"
+                  />
+                  <span className="text-xs leading-relaxed text-text-secondary">
+                    我已阅读并同意
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="mx-0.5 text-primary underline underline-offset-2 hover:text-primary-hover"
+                    >
+                      《用户协议》
+                    </Link>
+                    和
+                    <Link
+                      href="/privacy"
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="mx-0.5 text-primary underline underline-offset-2 hover:text-primary-hover"
+                    >
+                      《隐私政策》
+                    </Link>
+                  </span>
+                </label>
+              </>
             )}
-            <Button type="submit" className="mt-1 w-full" size="lg" disabled={loading}>
+            <Button
+              type="submit"
+              className="mt-1 w-full"
+              size="lg"
+              disabled={loading || (mode === 'register' && !agreed)}
+            >
               {loading ? <Spinner size={15} /> : null}
               {loading ? '处理中…' : mode === 'login' ? '登 录' : '注 册'}
             </Button>
@@ -167,7 +212,14 @@ export default function LoginPage() {
           <p className="mt-auto border-t border-border pt-4 text-2xs leading-relaxed text-text-muted">
             本系统为审计辅助工具，AI 结论仅供参考，请以人工复核为准。
           </p>
-          <div className="mt-3 text-center">
+          <div className="mt-3 flex items-center justify-center gap-3 text-center">
+            <Link
+              href="/terms"
+              className="text-2xs text-text-muted underline decoration-border underline-offset-4 transition-colors hover:text-text-secondary"
+            >
+              用户协议
+            </Link>
+            <span className="text-2xs text-border-strong">·</span>
             <Link
               href="/privacy"
               className="text-2xs text-text-muted underline decoration-border underline-offset-4 transition-colors hover:text-text-secondary"

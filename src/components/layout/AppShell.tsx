@@ -235,17 +235,29 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        {/* 底部：隐私政策 */}
-        <Link
-          href="/privacy"
-          title="隐私政策"
-          className={`mx-2 mb-1 flex items-center rounded-lg text-xs text-text-muted transition-colors hover:bg-surface2 hover:text-text ${
-            collapsed ? 'justify-center px-0 py-2' : 'gap-1.5 px-2.5 py-1.5'
-          }`}
-        >
-          <IconShieldCheck size={14} className="shrink-0" />
-          {!collapsed && <span>隐私政策</span>}
-        </Link>
+        {/* 底部：协议入口 */}
+        <div className={`mx-2 mb-1 flex text-xs text-text-muted ${collapsed ? 'flex-col gap-0.5' : 'flex-col gap-0.5'}`}>
+          <Link
+            href="/terms"
+            title="用户协议"
+            className={`flex items-center rounded-lg transition-colors hover:bg-surface2 hover:text-text ${
+              collapsed ? 'justify-center px-0 py-2' : 'gap-1.5 px-2.5 py-1.5'
+            }`}
+          >
+            <IconDocuments size={14} className="shrink-0" />
+            {!collapsed && <span>用户协议</span>}
+          </Link>
+          <Link
+            href="/privacy"
+            title="隐私政策"
+            className={`flex items-center rounded-lg transition-colors hover:bg-surface2 hover:text-text ${
+              collapsed ? 'justify-center px-0 py-2' : 'gap-1.5 px-2.5 py-1.5'
+            }`}
+          >
+            <IconShieldCheck size={14} className="shrink-0" />
+            {!collapsed && <span>隐私政策</span>}
+          </Link>
+        </div>
 
         {/* 收起 */}
         <button

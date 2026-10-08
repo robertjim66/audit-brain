@@ -303,7 +303,10 @@ export default function PrivacyPage() {
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
           <p className="text-xs leading-relaxed text-text-muted">
-            本政策依据系统实际实现编写，不含未实现的功能。
+            本政策依据系统实际实现编写，不含未实现的功能。相关文件：
+            <Link href="/terms" className="ml-1 text-primary underline underline-offset-4 hover:text-primary-hover">
+              用户协议
+            </Link>
           </p>
           <Link href="/login" className="text-sm text-primary transition-colors hover:text-primary-hover">
             返回登录

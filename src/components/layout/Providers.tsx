@@ -29,8 +29,8 @@ interface ProjectCtx {
 }
 const ProjectContext = createContext<ProjectCtx | null>(null);
 
-/** 无需登录即可访问的公开路径（隐私政策需对外可读） */
-const PUBLIC_PATHS = ['/login', '/privacy'];
+/** 无需登录即可访问的公开路径（协议类页面需对外可读） */
+const PUBLIC_PATHS = ['/login', '/privacy', '/terms'];
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
