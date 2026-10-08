@@ -29,6 +29,9 @@ interface ProjectCtx {
 }
 const ProjectContext = createContext<ProjectCtx | null>(null);
 
+/** 无需登录即可访问的公开路径（隐私政策需对外可读） */
+const PUBLIC_PATHS = ['/login', '/privacy'];
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,14 +79,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
     refresh();
   }, [refresh]);
 
-  // 路由守卫：受保护页面需登录
+  // 路由守卫：受保护页面需登录（/login 与 /privacy 为公开页，未登录也可访问）
   useEffect(() => {
     if (loading) return;
-    const isLoginPage = pathname?.startsWith('/login');
-    if (!user && !isLoginPage && pathname !== '/') {
+    const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname?.startsWith(p + '/'));
+    if (!user && !isPublic && pathname !== '/') {
       router.replace('/login');
     }
-    if (user && isLoginPage) {
+    if (user && pathname?.startsWith('/login')) {
       router.replace('/cockpit');
     }
   }, [user, loading, pathname, router]);

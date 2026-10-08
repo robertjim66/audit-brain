@@ -235,6 +235,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
+        {/* 底部：隐私政策 */}
+        <Link
+          href="/privacy"
+          title="隐私政策"
+          className={`mx-2 mb-1 flex items-center rounded-lg text-xs text-text-muted transition-colors hover:bg-surface2 hover:text-text ${
+            collapsed ? 'justify-center px-0 py-2' : 'gap-1.5 px-2.5 py-1.5'
+          }`}
+        >
+          <IconShieldCheck size={14} className="shrink-0" />
+          {!collapsed && <span>隐私政策</span>}
+        </Link>
+
         {/* 收起 */}
         <button
           onClick={() => setCollapsed((c) => !c)}

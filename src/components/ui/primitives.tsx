@@ -411,7 +411,7 @@ export function PageHeader({
 }
 
 export function Section({
-  title, description, actions, children, className = '', bodyClassName = '',
+  title, description, actions, children, className = '', bodyClassName = '', id,
 }: {
   title?: React.ReactNode;
   description?: React.ReactNode;
@@ -419,9 +419,11 @@ export function Section({
   children: React.ReactNode;
   className?: string;
   bodyClassName?: string;
+  /** 锚点 id，供页面内目录跳转 */
+  id?: string;
 }) {
   return (
-    <section className={`bg-card border border-border rounded-xl shadow-card ${className}`}>
+    <section id={id} className={`bg-card border border-border rounded-xl shadow-card ${className}`}>
       {(title || actions) && (
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border">
           <div className="min-w-0">

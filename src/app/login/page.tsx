@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '@/lib/apiClient';
 import { useAuth } from '@/components/layout/Providers';
 import { useToast } from '@/components/ui/Toast';
@@ -166,6 +167,14 @@ export default function LoginPage() {
           <p className="mt-auto border-t border-border pt-4 text-2xs leading-relaxed text-text-muted">
             本系统为审计辅助工具，AI 结论仅供参考，请以人工复核为准。
           </p>
+          <div className="mt-3 text-center">
+            <Link
+              href="/privacy"
+              className="text-2xs text-text-muted underline decoration-border underline-offset-4 transition-colors hover:text-text-secondary"
+            >
+              隐私政策
+            </Link>
+          </div>
         </div>
       </div>
     </div>
