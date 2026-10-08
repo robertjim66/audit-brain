@@ -1,12 +1,22 @@
 import { withHandler, readJson, ApiError } from '@/lib/http';
 import { signToken, comparePassword, isAdmin } from '@/lib/auth';
+import { verifyCaptcha } from '@/lib/captcha';
 import db from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export const POST = withHandler(async (req) => {
-  const { username, password } = await readJson<{ username?: string; password?: string }>(req);
+  const { username, password, captchaCode, captchaToken } = await readJson<{
+    username?: string; password?: string; captchaCode?: string; captchaToken?: string;
+  }>(req);
+
+  // 先过验证码再验证密码：挡住拿同一个验证码反复撞库的路径
+  const cap = verifyCaptcha(captchaCode, captchaToken);
+  if (!cap.ok) {
+    throw new ApiError(400, cap.reason === 'missing' ? '请输入图形验证码' : '验证码错误或已失效，请点击图片刷新');
+  }
+
   if (!username || !password || typeof username !== 'string' || typeof password !== 'string') {
     throw new ApiError(400, '请输入用户名和密码');
   }

@@ -1,5 +1,6 @@
 import { withHandler, readJson, ApiError } from '@/lib/http';
 import { signToken, hashPassword, isAdmin } from '@/lib/auth';
+import { verifyCaptcha } from '@/lib/captcha';
 import db from '@/lib/db';
 import snowflake from '@/lib/snowflake';
 
@@ -19,7 +20,16 @@ function validatePassword(p: string): string | null {
 }
 
 export const POST = withHandler(async (req) => {
-  const { username, password, nickname } = await readJson<{ username?: string; password?: string; nickname?: string }>(req);
+  const { username, password, nickname, captchaCode, captchaToken } = await readJson<{
+    username?: string; password?: string; nickname?: string; captchaCode?: string; captchaToken?: string;
+  }>(req);
+
+  // 先过验证码：挡住机器批量注册
+  const cap = verifyCaptcha(captchaCode, captchaToken);
+  if (!cap.ok) {
+    throw new ApiError(400, cap.reason === 'missing' ? '请输入图形验证码' : '验证码错误或已失效，请点击图片刷新');
+  }
+
   const err = validateUsername(username || '') || validatePassword(password || '') || (!nickname || !nickname.trim() ? '请输入昵称' : null);
   if (err) throw new ApiError(400, err);
 

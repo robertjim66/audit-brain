@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/apiClient';
 import { useAuth } from '@/components/layout/Providers';
 import { useToast } from '@/components/ui/Toast';
 import { Button, Field, Input, Segmented, Spinner } from '@/components/ui/primitives';
-import { IconShieldCheck, IconSparkles, IconCheck, IconClock } from '@/components/ui/icons';
+import { IconShieldCheck, IconSparkles, IconCheck, IconClock, IconRefresh } from '@/components/ui/icons';
 
 const VALUES = [
   { icon: IconSparkles, t: '少花时间', d: '自动翻找与比对，不用逐页手工核对' },
@@ -26,6 +26,23 @@ export default function LoginPage() {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // 图形验证码：图片与 token 都由服务端下发，答案为一次性
+  const [captcha, setCaptcha] = useState<{ token: string; image: string } | null>(null);
+  const [captchaInput, setCaptchaInput] = useState('');
+
+  const refreshCaptcha = useCallback(async () => {
+    setCaptchaInput('');
+    setCaptcha(null);
+    try {
+      const r = await api.get<{ token: string; image: string }>('/auth/captcha');
+      setCaptcha(r);
+    } catch {
+      setCaptcha(null);
+    }
+  }, []);
+
+  useEffect(() => { refreshCaptcha(); }, [refreshCaptcha]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     // 注册前必须明确同意协议：未勾选不提交，也不调用接口
@@ -33,21 +50,29 @@ export default function LoginPage() {
       toast.error('请先阅读并勾选同意《用户协议》与《隐私政策》');
       return;
     }
+    if (!captchaInput.trim()) {
+      toast.error('请输入图形验证码');
+      return;
+    }
     setLoading(true);
     try {
+      const captchaBody = { captchaCode: captchaInput.trim(), captchaToken: captcha?.token };
       if (mode === 'login') {
-        const res = await api.post<{ token: string; user: any }>('/auth/login', { username, password });
+        const res = await api.post<{ token: string; user: any }>('/auth/login', { username, password, ...captchaBody });
         login(res.token, res.user);
         toast.success('登录成功');
         router.replace('/cockpit');
       } else {
-        const res = await api.post<{ token: string; user: any }>('/auth/register', { username, password, nickname: nickname || username });
+        const res = await api.post<{ token: string; user: any }>('/auth/register', { username, password, nickname: nickname || username, ...captchaBody });
         login(res.token, res.user);
         toast.success('注册成功');
         router.replace('/cockpit');
       }
     } catch (err: any) {
       toast.error(err.message || '操作失败');
+      // 验证码一次性：提交失败后必须换新的一张，否则无法再提交
+      setCaptchaInput('');
+      refreshCaptcha();
     } finally {
       setLoading(false);
     }
@@ -128,7 +153,7 @@ export default function LoginPage() {
             <Segmented
               full
               value={mode}
-              onChange={(v) => setMode(v as 'login' | 'register')}
+              onChange={(v) => { setMode(v as 'login' | 'register'); refreshCaptcha(); }}
               options={[
                 { value: 'login', label: '登录' },
                 { value: 'register', label: '注册' },
@@ -156,15 +181,57 @@ export default function LoginPage() {
               />
             </Field>
             {mode === 'register' && (
-              <>
-                <Field label="昵称" hint="选填，默认同用户名；会显示在处置记录中">
-                  <Input
-                    value={nickname}
-                    onChange={(e) => setNickname(e.target.value)}
-                    placeholder="如：李工"
-                  />
-                </Field>
+              <Field label="昵称" hint="选填，默认同用户名；会显示在处置记录中">
+                <Input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="如：李工"
+                />
+              </Field>
+            )}
 
+            {/* 图形验证码：图片由服务端生成，点击可换一张 */}
+            <div>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <span className="eyebrow text-text-secondary">图形验证码</span>
+                <button
+                  type="button"
+                  onClick={refreshCaptcha}
+                  className="inline-flex items-center gap-1 text-2xs text-text-muted transition-colors hover:text-primary"
+                >
+                  <IconRefresh size={11} />
+                  看不清，换一张
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={captchaInput}
+                  onChange={(e) => setCaptchaInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  placeholder="请输入图中数字"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={4}
+                  className="num tracking-[0.25em]"
+                />
+                <button
+                  type="button"
+                  onClick={refreshCaptcha}
+                  title="点击刷新验证码"
+                  className="flex h-[34px] w-[80px] shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface2 transition-colors hover:border-border-strong"
+                >
+                  {captcha ? (
+                    // 验证码图片是运行时生成的内联 dataURL，非静态资源，禁用 eslint 的 next/image 提示
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={captcha.image} alt="图形验证码" className="h-full w-full" />
+                  ) : (
+                    <Spinner size={14} />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {mode === 'register' && (
+              <>
                 {/* 注册同意项：未勾选无法提交，两个协议均可新窗口打开边看边填 */}
                 <label className="flex cursor-pointer select-none items-start gap-2 pt-1">
                   <input
