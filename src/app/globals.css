@@ -11,6 +11,7 @@
   /* —— 品牌：藏青（政企 / 审计的权威感），铜金作证据与 AI 强调 —— */
   --c-primary: 26 76 122;          /* #1A4C7A */
   --c-primary-hover: 18 55 89;
+  --c-primary-deep: 15 44 75;      /* #0F2C4B —— 大屏 hero 渐变的收尾色 */
   --c-primary-fg: 255 255 255;
   --c-accent: 154 107 47;          /* #9A6B2F 铜金 */
   --c-accent-fg: 255 255 255;
@@ -218,3 +219,17 @@ td.num,
 .markdown-body pre code { background: transparent; border: 0; padding: 0; }
 .markdown-body blockquote { border-left: 2px solid rgb(var(--c-accent)); padding-left: 12px; color: rgb(var(--c-text-secondary)); margin: 0.7em 0; }
 .markdown-body a { color: rgb(var(--c-primary)); text-underline-offset: 2px; }
+
+/* ============================================================
+   无障碍：尊重系统"减少动效"设置
+   只关掉持续循环的装饰动画（floaty / spin-slow / breathe）。
+   滚动揭示与入场是 JS 门控的 —— reduced-motion 下 enhanced 为 false，
+   元素始终可见，无需在此处理。
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .animate-floaty,
+  .animate-spin-slow,
+  .animate-breathe {
+    animation: none !important;
+  }
+}

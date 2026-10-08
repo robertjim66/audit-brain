@@ -82,11 +82,27 @@ const config: Config = {
           from: { opacity: '0', transform: 'translateX(8px)' },
           to: { opacity: '1', transform: 'translateX(0)' },
         },
+        // —— 落地页动效：极克制，只做"活着"的呼吸感，不抢内容 ——
+        'floaty': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-7px)' },
+        },
+        'spin-slow': {
+          to: { transform: 'rotate(360deg)' },
+        },
+        // CTA 装饰圈水平居中 + 极缓缩放；关键帧自带 translateX(-50%) 避免与定位冲突
+        'breathe': {
+          '0%, 100%': { transform: 'translateX(-50%) scale(1)' },
+          '50%': { transform: 'translateX(-50%) scale(1.045)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.18s ease-out both',
         'fade-in-up': 'fade-in-up 0.22s cubic-bezier(0.22, 0.61, 0.36, 1) both',
         'slide-in-right': 'slide-in-right 0.22s cubic-bezier(0.22, 0.61, 0.36, 1) both',
+        'floaty': 'floaty 7s ease-in-out infinite',
+        'spin-slow': 'spin-slow 120s linear infinite',
+        'breathe': 'breathe 9s ease-in-out infinite',
       },
     },
   },
