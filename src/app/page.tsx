@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { getToken } from '@/lib/apiClient';
 import { repoUrl } from '@/lib/site';
 import {
-  IconShieldCheck, IconClock, IconLock, IconDocuments, IconFileSpreadsheet,
+  IconShieldCheck, IconScan, IconCpu, IconTarget, IconDocuments, IconFileSpreadsheet,
   IconChat, IconFindings, IconDownload, IconArrowRight,
 } from '@/components/ui/icons';
 
@@ -106,27 +106,27 @@ const FEATURES = [
   {
     icon: IconDocuments,
     title: '资料上传与自动解析',
-    desc: '清单、结算、合同、签证、发票、照片分类上传。Excel / Word 本机解析，PDF 与图片走 OCR 识别，全程无需人工录入。',
+    desc: '清单、结算、合同、签证、发票、照片分类上传。Excel / Word 本机解析，PDF 与图片走 OCR 识别，识别结果可逐条核对。',
   },
   {
     icon: IconFileSpreadsheet,
     title: '清单 ↔ 结算勾稽',
-    desc: '按 9–13 位清单项目编码配对两侧，逐项比对工程量、综合单价与合价，自动汇总核增核减金额。',
+    desc: '按 9–13 位清单项目编码配对两侧，全量逐项比对工程量、综合单价与合价。核对环节不交给模型，跑两次结果一致。',
   },
   {
     icon: IconShieldCheck,
     title: '三方签章证据链核对',
-    desc: '检查签证与合同的建设、监理、施工三方签章，识别"有栏无章"与"未见该方"，判断能否作为结算依据。',
+    desc: '检查签证与合同的建设、监理、施工三方签章，识别"有栏无章"与"未见该方"，全量不漏查。',
   },
   {
     icon: IconChat,
     title: '带证据出处的问答',
-    desc: '就资料内容直接提问，回答附带证据角标，可回跳到原文位置与页码 —— 每条说法都能自己核一遍。',
+    desc: '就资料内容直接提问，回答限定在已入库资料范围内，附带证据角标，可回跳到原文位置 —— 每条说法都能自己核一遍。',
   },
   {
     icon: IconFindings,
     title: '疑点台账与处置留痕',
-    desc: '量差、签章、凑整金额、连号发票、集中签证、资料缺口六类规则扫描。改状态即记录处理人与时间。',
+    desc: '量差、签章、凑整金额、连号发票、集中签证、资料缺口六类规则扫描。改状态即记录处理人与时间，可直接进底稿。',
   },
   {
     icon: IconDownload,
@@ -226,7 +226,8 @@ export default function Home() {
             <Reveal enhanced={enhanced} delay={220}>
               <p className="mt-5 max-w-[520px] text-base leading-relaxed text-white/80">
                 几百页结算书、几十份签证单，再加合同与发票 —— 系统把资料读成可比对的数据、
-                两边自动比对、把可疑之处连同证据整理成清单。合不合理、怎么定性，仍然由你决定。
+                全量逐条比对、把可疑之处连同证据整理成清单，核不到的明确标「无法确认」。
+                合不合理、怎么定性，仍然由你决定。
               </p>
             </Reveal>
             <Reveal enhanced={enhanced} delay={330}>
@@ -302,11 +303,12 @@ export default function Home() {
 
       {/* ============ 信任条 ============ */}
       <div className="mx-auto max-w-[1120px] px-6">
-        <div className="grid gap-5 border-b border-t border-border py-6 sm:grid-cols-3">
+        <div className="grid gap-5 border-b border-t border-border py-6 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { icon: IconShieldCheck, b: '不下审计结论', s: '只回答"哪里可疑、证据在哪"，定性由你来做' },
-            { icon: IconClock, b: '处置全程留痕', s: '每条疑点的处理人与时间可追溯，三个月后也答得上来' },
-            { icon: IconLock, b: '数据在你自己服务器', s: '自托管部署，Excel / Word 本地解析不出本机' },
+            { icon: IconScan, b: '全覆盖 · 全量审查', s: '逐条比对，不做抽样 —— 降低漏检率，提高覆盖率' },
+            { icon: IconCpu, b: '低幻觉 · 确定性算法', s: '核对环节的比对不交给模型，跑两次结果一致' },
+            { icon: IconTarget, b: '可追溯 · 回到原文', s: '每条疑点都能追到它在哪一份资料的哪一段' },
+            { icon: IconFileSpreadsheet, b: '可交付 · 可留痕', s: '导出成台账，每条带证据位置，可做处置记录' },
           ].map((t, i) => (
             <Reveal key={t.b} enhanced={enhanced} delay={i * 70}>
               <div className="flex items-start gap-3">

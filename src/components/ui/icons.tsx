@@ -248,6 +248,23 @@ export const IconScan = (p: IconProps) => (
   </Svg>
 );
 
+/** 确定性计算 —— 用于表达"这一步走算法，不走模型" */
+export const IconCpu = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="7" y="7" width="10" height="10" rx="1.5" />
+    <path d="M10 3v2M14 3v2M10 19v2M14 19v2M3 10h2M3 14h2M19 10h2M19 14h2" />
+  </Svg>
+);
+
+/** 定位到出处 —— 用于表达"可追溯到原文段落" */
+export const IconTarget = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="8" />
+    <circle cx="12" cy="12" r="3.4" />
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+  </Svg>
+);
+
 export const IconSparkles = (p: IconProps) => (
   <Svg {...p}>
     <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
